@@ -18,7 +18,7 @@ if [[ ! -x $APP/.venv/bin/python ]]; then
   "$PY" -m venv "$APP/.venv"
 fi
 echo "→ installing Python packages"
-"$APP/.venv/bin/pip" install -q -r "$APP/requirements.txt"
+"$APP/.venv/bin/python" -m pip install -q --disable-pip-version-check -r "$APP/requirements.txt"
 
 if [[ ! -f $APP/static/vendor/monaco/vs/loader.js ]]; then
   echo "→ downloading editor libraries with npm"
