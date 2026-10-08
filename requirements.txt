@@ -1,0 +1,4 @@
+flask>=3.0
+flask-sock>=0.7
+PyQt6>=6.6
+PyQt6-WebEngine>=6.6

@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""ocode — Ollama file agent. Uses tool calling to read/write/edit/list files."""
+
+import json
+import os
+import sys
+import subprocess
+import urllib.request
+import urllib.error
+import difflib
+from pathlib import Path
+
+OLLAMA_URL = "http://localhost:11434/api/chat"
+DEFAULT_MODEL = "hf.co/mradermacher/Qwen2.5-Coder-32B-Instruct-Uncensored-GGUF:Q4_K_M"
+
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "Read the contents of a file.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path to read"}
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": "Write (create or overwrite) a file with the given content.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path to write"},
+                    "content": {"type": "string", "description": "Content to write"},
+                },
+                "required": ["path", "content"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "edit_file",
+            "description": "Replace an exact string in a file with new text.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path to edit"},
+                    "old_string": {"type": "string", "description": "Exact text to find and replace"},
+                    "new_string": {"type": "string", "description": "Replacement text"},
+                },
+                "required": ["path", "old_string", "new_string"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_files",
+            "description": "List files in a directory.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "Directory path (default: current dir)"},
+                },
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "run_command",
+            "description": "Run a shell command and return its output.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "Shell command to run"},
+                },
+                "required": ["command"],
+            },
+        },
+    },
+]
+
+
+def run_tool(name: str, args: dict) -> str:
+    try:
+        if name == "read_file":
+            p = Path(args["path"]).expanduser()
+            if not p.exists():
+                return f"Error: {p} does not exist"
+            return p.read_text(errors="replace")
+
+        elif name == "write_file":
+            p = Path(args["path"]).expanduser()
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(args["content"])
+            print(f"  \033[32m✔ wrote {p}\033[0m")
+            return f"Written {p}"
+
+        elif name == "edit_file":
+            p = Path(args["path"]).expanduser()
+            if not p.exists():
+                return f"Error: {p} does not exist"
+            original = p.read_text(errors="replace")
+            old = args["old_string"]
+            new = args["new_string"]
+            if old not in original:
+                return f"Error: old_string not found in {p}"
+            updated = original.replace(old, new, 1)
+            p.write_text(updated)
+            diff = "".join(difflib.unified_diff(
+                original.splitlines(keepends=True),
+                updated.splitlines(keepends=True),
+                fromfile=str(p), tofile=str(p), n=2
+            ))
+            print(f"  \033[32m✔ edited {p}\033[0m")
+            if diff:
+                for line in diff.splitlines():
+                    color = "\033[32m" if line.startswith("+") else "\033[31m" if line.startswith("-") else "\033[0m"
+                    print(f"  {color}{line}\033[0m")
+            return f"Edited {p}"
+
+        elif name == "list_files":
+            p = Path(args.get("path", ".")).expanduser()
+            if not p.exists():
+                return f"Error: {p} does not exist"
+            entries = sorted(p.iterdir(), key=lambda x: (x.is_file(), x.name))
+            return "\n".join(
+                ("/" if e.is_dir() else " ") + e.name for e in entries
+            )
+
+        elif name == "run_command":
+            cmd = args["command"]
+            print(f"  \033[33m$ {cmd}\033[0m")
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, timeout=30
+            )
+            output = result.stdout + result.stderr
+            return output[:4000] or "(no output)"
+
+        return f"Unknown tool: {name}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def chat(model: str, messages: list) -> dict:
+    payload = json.dumps({
+        "model": model,
+        "messages": messages,
+        "tools": TOOLS,
+        "stream": False,
+    }).encode()
+    req = urllib.request.Request(
+        OLLAMA_URL,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=300) as resp:
+        return json.loads(resp.read())
+
+
+import re as _re
+
+def _extract_text_tool_calls(content: str) -> list:
+    """Parse tool calls the model emitted as raw JSON text instead of structured calls."""
+    calls = []
+    decoder = json.JSONDecoder()
+    i = 0
+    while i < len(content):
+        if content[i] == '{':
+            try:
+                obj, end = decoder.raw_decode(content, i)
+                if isinstance(obj, dict) and "name" in obj and "arguments" in obj:
+                    calls.append({"function": {"name": obj["name"], "arguments": obj["arguments"]}})
+                i += end
+            except Exception:
+                i += 1
+        else:
+            i += 1
+    return calls
+
+
+def agent_step(model: str, messages: list):
+    """Run one round: send messages, execute any tool calls, return updated messages."""
+    while True:
+        print("\033[2m  thinking...\033[0m", end="\r", flush=True)
+        try:
+            response = chat(model, messages)
+        except Exception as e:
+            print(f"\033[31mOllama error: {e}\033[0m")
+            return messages
+
+        msg = response.get("message", {})
+        tool_calls = msg.get("tool_calls", [])
+        content = msg.get("content", "")
+
+        print(" " * 20, end="\r")  # clear "thinking..."
+
+        # If model didn't use native tool calling, try parsing calls from its text
+        if not tool_calls and content:
+            tool_calls = _extract_text_tool_calls(content)
+            if tool_calls:
+                content = ""  # suppress raw JSON output
+
+        if not tool_calls:
+            if content:
+                print(f"\n\033[1massistant:\033[0m {content}\n")
+            return messages
+
+        messages.append({"role": "assistant", "content": content, "tool_calls": tool_calls})
+
+        for tc in tool_calls:
+            fn = tc.get("function", {})
+            name = fn.get("name", "")
+            args = fn.get("arguments", {})
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except Exception:
+                    args = {}
+            print(f"\033[36m  → {name}({', '.join(f'{k}={repr(v)[:60]}' for k, v in args.items())})\033[0m")
+            result = run_tool(name, args)
+            messages.append({"role": "tool", "content": result})
+
+
+def repl(model: str, cwd: str):
+    import readline  # noqa: enables arrow keys / history
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                f"You are a coding assistant with file system access. "
+                f"Current working directory: {cwd}\n"
+                "Use tools to read, create, and edit files as needed. "
+                "Always read a file before editing it. "
+                "Be concise in your replies."
+            ),
+        }
+    ]
+
+    print(f"\033[1mocode\033[0m  \033[2m{model}\033[0m")
+    print(f"\033[2mcwd: {cwd}  |  type 'exit' or Ctrl-D to quit\033[0m\n")
+
+    while True:
+        try:
+            user_input = input("\033[1myou:\033[0m ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+
+        if not user_input:
+            continue
+        if user_input.lower() in ("exit", "quit", "q"):
+            break
+
+        messages.append({"role": "user", "content": user_input})
+        messages = agent_step(model, messages)
+
+
+def main():
+    args = sys.argv[1:]
+    model = DEFAULT_MODEL
+
+    if args and args[0] == "--model":
+        model = args[1]
+        args = args[2:]
+
+    cwd = os.getcwd()
+
+    if not args:
+        repl(model, cwd)
+        return
+
+    # single-shot mode
+    prompt = " ".join(args)
+    print(f"\033[2mocode · {model}\033[0m\n")
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                f"You are a coding assistant with file system access. "
+                f"Current working directory: {cwd}\n"
+                "Use tools to read, create, and edit files as needed. "
+                "Always read a file before editing it. "
+                "Be concise in your final reply."
+            ),
+        },
+        {"role": "user", "content": prompt},
+    ]
+    agent_step(model, messages)
+
+
+if __name__ == "__main__":
+    main()

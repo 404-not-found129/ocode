@@ -1,0 +1,19 @@
+#!/bin/bash
+# ocode-gui launcher — handles both terminal and GUI launcher contexts
+APP_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+
+# Wayland / display setup
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [ -z "$WAYLAND_DISPLAY" ] && [ -S "$XDG_RUNTIME_DIR/wayland-1" ]; then
+  export WAYLAND_DISPLAY="wayland-1"
+fi
+if [ -z "$DISPLAY" ] && [ -S "/tmp/.X11-unix/X0" ]; then
+  export DISPLAY=":0"
+fi
+
+# Qt: prefer Wayland, fall back to xcb
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
+export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox"
+export QT_WAYLAND_DISABLE_WINDOWDECORATION="${QT_WAYLAND_DISABLE_WINDOWDECORATION:-1}"
+
+exec "$APP_DIR/.venv/bin/python" "$APP_DIR/app.py" "$@"

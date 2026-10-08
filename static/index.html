@@ -1,0 +1,2561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ocode</title>
+<link rel="stylesheet" href="/static/vendor/xterm/xterm.css">
+<link rel="stylesheet" data-name="vs/editor/editor.main" href="/static/vendor/monaco/vs/editor/editor.main.css">
+<!-- These UMD bundles must load before Monaco's AMD loader defines `define`. -->
+<script src="/static/vendor/xterm/xterm.js"></script>
+<script src="/static/vendor/xterm/addon-fit.js"></script>
+<script src="/static/vendor/marked.umd.js"></script>
+<script src="/static/vendor/purify.min.js"></script>
+<script src="/static/vendor/monaco/vs/loader.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#121214;--bg1:#18181b;--bg2:#1f1f23;--bg3:#27272c;--bg4:#33333a;--bg5:#45454e;
+  --fg0:#f2f2f4;--fg1:#cfcfd6;--fg2:#8e8e99;--fg3:#5f5f69;
+  --accent:#d97757;--accent2:#eba383;--accent-dim:rgba(217,119,87,.16);--border:#26262b;
+  --green:#8fbf7a;--red:#e5707a;--yellow:#e3b867;--blue:#7aa6e0;--cyan:#6cc4c9;--purple:#b99ae6;
+  --font-ui:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrainsMono Nerd Font','JetBrains Mono','Fira Code',monospace;
+  --r:8px;--r-sm:5px;color-scheme:dark;
+}
+html,body{height:100%;background:var(--bg0);color:var(--fg1);font:13px/1.45 var(--font-ui);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+kbd{font:11px var(--font-mono);color:var(--fg2);background:var(--bg3);border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 5px;white-space:nowrap}
+code{font-family:var(--font-mono);font-size:.92em}
+.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;display:block}
+.ic.fill{fill:currentColor;stroke:none}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--fg3) 35%,transparent);border-radius:10px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--fg3) 65%,transparent)}
+::-webkit-scrollbar-corner{background:transparent}
+body.resizing-x *{cursor:col-resize!important;user-select:none!important}
+body.resizing-y *{cursor:row-resize!important;user-select:none!important}
+
+#root{display:flex;flex-direction:column;height:100vh}
+
+/* Titlebar */
+#titlebar{height:40px;display:flex;align-items:center;gap:8px;padding:0 8px 0 14px;background:var(--bg1);border-bottom:1px solid var(--border);flex-shrink:0;user-select:none}
+.logo{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px;color:var(--fg0);letter-spacing:-.2px;margin-right:6px}
+.logo svg{width:18px;height:18px;color:var(--accent)}
+.pill{display:flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:13px;background:var(--bg2);border:1px solid var(--border);color:var(--fg2);font-size:12px;cursor:pointer;max-width:340px;white-space:nowrap}
+.pill:hover{color:var(--fg0);background:var(--bg3)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.pill span{overflow:hidden;text-overflow:ellipsis}
+.pill .ic{width:14px;height:14px}
+#tb-search{flex:0 1 420px;margin:0 auto;justify-content:center;max-width:none;border-radius:var(--r-sm)}
+#tb-search kbd{margin-left:auto}
+.spacer{flex:1}
+.icon-btn{width:28px;height:28px;display:grid;place-items:center;border-radius:var(--r-sm);color:var(--fg2);flex-shrink:0}
+.icon-btn:hover{background:var(--bg3);color:var(--fg0)}
+.icon-btn.on{color:var(--fg0)}
+.icon-btn.off{color:var(--fg3)}
+.effort{font-size:10.5px;font-weight:650;letter-spacing:.6px;text-transform:uppercase;padding:2px 9px;border-radius:10px;border:1px solid currentColor;cursor:pointer;opacity:.9}
+.effort:hover{opacity:1}
+.effort.low{color:var(--fg2)}.effort.medium{color:var(--accent)}.effort.high{color:var(--green)}.effort.max{color:var(--purple)}
+
+#workspace{flex:1;display:flex;min-height:0}
+
+/* Activity bar */
+#activitybar{width:48px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:4px 0;flex-shrink:0}
+.ab{width:48px;height:44px;display:grid;place-items:center;color:var(--fg3);position:relative}
+.ab .ic{width:22px;height:22px;stroke-width:1.6}
+.ab:hover{color:var(--fg1)}
+.ab.active{color:var(--fg0)}
+.ab.active::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:0 2px 2px 0;background:var(--accent)}
+
+/* Sidebar */
+#sidebar{width:270px;background:var(--bg1);display:flex;flex-direction:column;min-width:0;flex-shrink:0}
+.view{display:none;flex-direction:column;flex:1;min-height:0}
+.view.active{display:flex}
+.view-head{height:38px;display:flex;align-items:center;gap:1px;padding:0 6px 0 16px;flex-shrink:0}
+.view-title{flex:1;font-size:11px;font-weight:650;letter-spacing:.9px;text-transform:uppercase;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:default}
+.view-head .icon-btn{width:26px;height:26px}
+.view-head .icon-btn .ic{width:15px;height:15px}
+.view-body{flex:1;overflow:auto;min-height:0}
+.split-x{width:4px;margin:0 -2px;position:relative;z-index:5;cursor:col-resize;flex-shrink:0}
+.split-x::after{content:'';position:absolute;left:1.5px;top:0;bottom:0;width:1px;background:var(--border);transition:background .15s}
+.split-x:hover::after,.split-x.dragging::after{background:var(--accent);left:1px;width:2px}
+.split-y{height:4px;margin:-2px 0;position:relative;z-index:5;cursor:row-resize;flex-shrink:0}
+.split-y::after{content:'';position:absolute;top:1.5px;left:0;right:0;height:1px;background:var(--border)}
+.split-y:hover::after,.split-y.dragging::after{background:var(--accent);top:1px;height:2px}
+
+/* Tree */
+#tree{padding:2px 0 24px;user-select:none;min-height:100%}
+.row{display:flex;align-items:center;height:24px;padding-right:10px;cursor:pointer;color:var(--fg1);white-space:nowrap;position:relative;font-size:13px}
+.row:hover{background:var(--bg2)}
+.row.active{background:var(--bg3);color:var(--fg0)}
+.row.ctx{box-shadow:inset 0 0 0 1px var(--accent)}
+.chev{width:18px;height:18px;display:grid;place-items:center;color:var(--fg3);flex-shrink:0;transition:transform .12s}
+.chev .ic{width:12px;height:12px;stroke-width:2.4}
+.chev.open{transform:rotate(90deg)}
+.fi{width:20px;flex-shrink:0;text-align:center;font:800 8.5px/1 var(--font-mono);margin-right:6px;letter-spacing:-.4px}
+.fi.folder{color:var(--accent);opacity:.85;display:grid;place-items:center}
+.fi.folder .ic{width:15px;height:15px}
+.row .name{overflow:hidden;text-overflow:ellipsis;flex:1}
+.row .gbadge{font:700 10px var(--font-mono);margin-left:6px;width:10px;text-align:center}
+.row.g-M .name,.row.g-M .gbadge{color:var(--yellow)}
+.row.g-U .name,.row.g-U .gbadge,.row.g-A .name,.row.g-A .gbadge{color:var(--green)}
+.row.g-D .name,.row.g-D .gbadge{color:var(--red)}
+.row.g-R .name,.row.g-R .gbadge{color:var(--cyan)}
+.row.dir.g-M .gbadge,.row.dir.g-U .gbadge,.row.dir.g-A .gbadge{font-size:14px;line-height:1}
+.tree-msg{padding:10px 16px;color:var(--fg3);font-size:12px}
+
+/* Center */
+#center{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg0)}
+#tabbar{height:38px;display:flex;background:var(--bg1);border-bottom:1px solid var(--border);overflow-x:auto;overflow-y:hidden;flex-shrink:0}
+#tabbar::-webkit-scrollbar{height:3px}
+#tabbar::-webkit-scrollbar-thumb{border:0}
+.tab{display:flex;align-items:center;gap:7px;padding:0 6px 0 12px;max-width:240px;border-right:1px solid var(--border);color:var(--fg2);cursor:pointer;flex-shrink:0;font-size:12.5px;position:relative;user-select:none}
+.tab:hover{background:var(--bg2);color:var(--fg1)}
+.tab.active{background:var(--bg0);color:var(--fg0)}
+.tab.active::before{content:'';position:absolute;left:0;right:0;top:0;height:2px;background:var(--accent)}
+.tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--bg0)}
+.tab .fi{margin-right:0;width:auto;min-width:14px}
+.tab .tname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab .tdir{color:var(--fg3);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px}
+.tclose{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;color:var(--fg3);flex-shrink:0}
+.tclose .ic{width:13px;height:13px;stroke-width:2.2}
+.tclose:hover{background:var(--bg4);color:var(--fg0)}
+.tclose .dirty{width:8px;height:8px;border-radius:50%;background:var(--fg1);display:none}
+.tab.dirty .tclose .dirty{display:block}
+.tab.dirty .tclose .ic{display:none}
+.tab.dirty .tclose:hover .dirty{display:none}
+.tab.dirty .tclose:hover .ic{display:block}
+.tab:not(:hover):not(.active):not(.dirty) .tclose{visibility:hidden}
+#crumbs{height:26px;display:flex;align-items:center;gap:3px;padding:0 16px;font-size:12px;color:var(--fg3);flex-shrink:0;white-space:nowrap;overflow:hidden;user-select:none}
+#crumbs .ic{width:12px;height:12px;stroke-width:2}
+#crumbs .crumb:last-child{color:var(--fg1)}
+#crumbs:empty{display:none}
+#editor-wrap{flex:1;position:relative;min-height:0}
+#monaco,#welcome,#image-view{position:absolute;inset:0}
+#image-view{display:none;place-items:center;overflow:auto;background:repeating-conic-gradient(var(--bg1) 0 25%,var(--bg0) 0 50%) 0 0/20px 20px}
+#image-view img{max-width:92%;max-height:92%;box-shadow:0 8px 40px rgba(0,0,0,.4);image-rendering:auto}
+#image-view .meta{position:absolute;bottom:12px;right:16px;font-size:11px;color:var(--fg2);background:var(--bg1);padding:3px 8px;border-radius:4px}
+
+/* Welcome */
+#welcome{display:flex;align-items:center;justify-content:center;overflow:auto;padding:40px}
+.wl{width:min(640px,100%)}
+.wl-head{display:flex;align-items:center;gap:16px;margin-bottom:34px}
+.wl-head svg{width:52px;height:52px;color:var(--accent)}
+.wl-title{font-size:30px;font-weight:650;color:var(--fg0);letter-spacing:-.6px}
+.wl-sub{color:var(--fg2);font-size:13.5px}
+.wl-cols{display:grid;grid-template-columns:1fr 1fr;gap:36px}
+.wl h3{font-size:11px;font-weight:650;letter-spacing:.9px;text-transform:uppercase;color:var(--fg3);margin-bottom:10px}
+.wl-item{display:flex;align-items:center;gap:10px;padding:5px 8px;margin:0 -8px;border-radius:var(--r-sm);color:var(--fg1);cursor:pointer;font-size:13px;min-width:0}
+.wl-item:hover{background:var(--bg2);color:var(--fg0)}
+.wl-item .ic{color:var(--accent)}
+.wl-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl-item small{color:var(--fg3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:auto;padding-left:8px}
+.wl-item kbd{margin-left:auto}
+.wl-empty{color:var(--fg3);font-size:12.5px}
+
+/* Terminal */
+#term-panel{height:260px;min-height:90px;display:flex;flex-direction:column;background:var(--bg1);flex-shrink:0}
+#term-head{height:36px;display:flex;align-items:center;gap:2px;padding:0 6px 0 16px;flex-shrink:0;user-select:none}
+#term-head .view-title{flex:0 0 auto;color:var(--fg1)}
+#term-head .tsub{color:var(--fg3);font-size:11.5px;margin-left:10px;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:var(--font-mono)}
+#term-head .icon-btn .ic{width:15px;height:15px}
+#xterm{flex:1;min-height:0;padding:2px 0 4px 14px}
+#xterm .xterm-viewport{background:transparent!important}
+#center.term-max>#tabbar,#center.term-max>#crumbs,#center.term-max>#editor-wrap,#center.term-max>#term-split{display:none}
+#center.term-max>#term-panel{flex:1;height:auto!important}
+
+/* Chat */
+#chat{width:410px;min-width:300px;display:flex;flex-direction:column;background:var(--bg1);flex-shrink:0}
+#chat-head{height:40px;display:flex;align-items:center;gap:2px;padding:0 6px 0 16px;flex-shrink:0;border-bottom:1px solid var(--border)}
+#chat-head .ch-title{flex:1;font-weight:600;color:var(--fg0);font-size:13px}
+#messages{flex:1;overflow-y:auto;padding:16px 16px 8px;user-select:text}
+.chat-empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:20px;user-select:none}
+.chat-empty svg{width:40px;height:40px;color:var(--accent);margin-bottom:6px}
+.ce-title{font-size:19px;font-weight:600;color:var(--fg0);letter-spacing:-.3px}
+.ce-sub{color:var(--fg2);font-size:12.5px;max-width:280px}
+.ce-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.chip{padding:6px 12px;border-radius:16px;border:1px solid var(--border);background:var(--bg2);color:var(--fg1);font-size:12px}
+.chip:hover{border-color:var(--accent);color:var(--fg0)}
+.m-user{display:flex;justify-content:flex-end;margin:4px 0 18px}
+.m-user .bubble{background:var(--bg3);color:var(--fg0);border-radius:14px 14px 4px 14px;padding:8px 13px;max-width:90%;word-break:break-word}
+.m-ai{margin:0 0 20px}
+.m-ai-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.m-ai-head svg{width:16px;height:16px;color:var(--accent)}
+.m-ai-head span{font-weight:600;color:var(--fg0);font-size:12.5px}
+.m-ai-body{color:var(--fg1);word-break:break-word}
+.chat-error{color:var(--red);background:color-mix(in srgb,var(--red) 10%,transparent);border-radius:var(--r-sm);padding:6px 10px;margin:6px 0;font-size:12.5px}
+.chat-note{color:var(--fg3);font-size:12px;margin:6px 0}
+.dots{display:flex;gap:4px;padding:6px 0}
+.dots span{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:bounce 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:scale(.55);opacity:.35}40%{transform:scale(1);opacity:1}}
+.sys{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;margin:6px 0 12px;border-radius:var(--r-sm);background:var(--bg2);border-left:2px solid var(--accent);font-size:12.5px;color:var(--fg1)}
+.sys code{color:var(--accent2)}
+
+/* Markdown */
+.md>*:first-child{margin-top:0}
+.md p,.md ul,.md ol,.md pre,.md blockquote,.md table,.md .codeblock{margin:8px 0}
+.md ul,.md ol{padding-left:20px}
+.md li{margin:2px 0}
+.md h1,.md h2,.md h3,.md h4{color:var(--fg0);margin:14px 0 6px;font-weight:620;line-height:1.3}
+.md h1{font-size:17px}.md h2{font-size:15.5px}.md h3,.md h4{font-size:14px}
+.md a{color:var(--accent2);text-decoration:none}.md a:hover{text-decoration:underline}
+.md :not(pre)>code{background:var(--bg3);padding:1px 5px;border-radius:4px;color:var(--fg0)}
+.md code.path-link{cursor:pointer;color:var(--accent2)}
+.md code.path-link:hover{text-decoration:underline}
+.md blockquote{border-left:3px solid var(--bg5);padding-left:10px;color:var(--fg2)}
+.md table{border-collapse:collapse;font-size:12.5px}
+.md th,.md td{border:1px solid var(--border);padding:4px 8px}
+.md hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+.codeblock{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--bg0)}
+.cb-head{display:flex;align-items:center;gap:2px;padding:3px 4px 3px 12px;background:var(--bg2);font:11px var(--font-mono);color:var(--fg2)}
+.cb-head span{flex:1}
+.cb-head button{display:flex;align-items:center;gap:4px;padding:3px 7px;border-radius:4px;font:11px var(--font-ui);color:var(--fg2)}
+.cb-head button:hover{background:var(--bg4);color:var(--fg0)}
+.cb-head .ic{width:13px;height:13px}
+.codeblock pre{margin:0;padding:10px 12px;overflow-x:auto;font:12.5px/1.5 var(--font-mono);background:transparent}
+
+/* Tool blocks */
+.tool{border:1px solid var(--border);border-radius:var(--r);margin:8px 0;overflow:hidden;background:var(--bg0)}
+.tool-head{display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12.5px;user-select:none}
+.tool-head:hover{background:var(--bg2)}
+.tool-head>.ic{width:14px;height:14px;color:var(--fg2)}
+.tool-verb{font-weight:600;color:var(--fg0)}
+.tool-target{color:var(--fg2);font-family:var(--font-mono);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.tool-target.link{color:var(--accent2);cursor:pointer}
+.tool-target.link:hover{text-decoration:underline}
+.tool-status{font-size:11px;flex-shrink:0}
+.tool-status.running{width:12px;height:12px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+.tool-status.ok{color:var(--green)}.tool-status.err{color:var(--red)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tool-chev{width:12px!important;height:12px!important;transition:transform .12s;color:var(--fg3)!important}
+.tool.open .tool-chev{transform:rotate(90deg)}
+.tool-body{display:none;border-top:1px solid var(--border)}
+.tool.open .tool-body{display:block}
+.tool-body pre{margin:0;padding:8px 12px;font:11.5px/1.5 var(--font-mono);color:var(--fg1);max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.tool-body pre+pre{border-top:1px solid var(--border)}
+.tool-result{color:var(--fg2)!important}
+.tool-result.err{color:var(--red)!important}
+.diff .del{color:var(--red);background:color-mix(in srgb,var(--red) 9%,transparent)}
+.diff .add{color:var(--green);background:color-mix(in srgb,var(--green) 9%,transparent)}
+
+/* Chat input */
+#input-area{padding:10px 12px 12px;position:relative;flex-shrink:0}
+#input-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;transition:border-color .15s,box-shadow .15s}
+#input-box:focus-within{border-color:color-mix(in srgb,var(--accent) 60%,var(--border));box-shadow:0 0 0 3px var(--accent-dim)}
+#chat-input{display:block;width:100%;background:none;border:none;outline:none;resize:none;padding:11px 14px 4px;color:var(--fg0);min-height:46px;max-height:240px;line-height:1.5}
+#chat-input::placeholder{color:var(--fg3)}
+.input-row{display:flex;align-items:center;gap:6px;padding:4px 6px 6px 10px}
+.input-row .hint{flex:1;font-size:11px;color:var(--fg3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.mini-pill{font-size:11px;color:var(--fg2);padding:3px 8px;border-radius:10px;background:var(--bg3);cursor:pointer;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.mini-pill:hover{color:var(--fg0)}
+#send-btn{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;flex-shrink:0;transition:opacity .15s,background .15s}
+#send-btn .ic{width:16px;height:16px;stroke-width:2.4}
+#send-btn:hover{background:var(--accent2)}
+#send-btn.busy{background:var(--fg1);color:var(--bg0)}
+#send-btn .ic.fill{width:11px;height:11px}
+#slash{position:absolute;left:12px;right:12px;bottom:calc(100% - 4px);background:var(--bg1);border:1px solid var(--bg4);border-radius:var(--r);box-shadow:0 -10px 40px rgba(0,0,0,.35);overflow:hidden;display:none;z-index:50;max-height:320px;overflow-y:auto}
+#slash.open{display:block}
+.sl-item{display:flex;align-items:baseline;gap:8px;padding:7px 12px;cursor:pointer;font-size:12.5px}
+.sl-item.sel{background:var(--bg3)}
+.sl-name{color:var(--accent2);font-family:var(--font-mono);font-weight:600}
+.sl-args{color:var(--fg3);font-family:var(--font-mono);font-size:11px}
+.sl-desc{color:var(--fg2);margin-left:auto;text-align:right;font-size:12px}
+
+/* Status bar */
+#statusbar{height:24px;display:flex;align-items:stretch;background:var(--bg1);border-top:1px solid var(--border);font-size:12px;color:var(--fg2);flex-shrink:0;user-select:none;padding:0 4px}
+#statusbar .grp{display:flex;align-items:stretch;min-width:0}
+.sb-item{display:flex;align-items:center;gap:5px;padding:0 8px;white-space:nowrap;cursor:pointer;border-radius:3px}
+.sb-item:hover{background:var(--bg3);color:var(--fg0)}
+.sb-item.static{cursor:default}.sb-item.static:hover{background:none;color:inherit}
+.sb-item .ic{width:13px;height:13px}
+.sb-item:empty{display:none}
+.sb-err{color:var(--red)}.sb-warn{color:var(--yellow)}
+
+/* Quick open */
+#quick-back{position:fixed;inset:0;z-index:1000;display:none}
+#quick-back.open{display:block}
+#quick{position:absolute;top:56px;left:50%;transform:translateX(-50%);width:min(640px,calc(100vw - 32px));background:var(--bg1);border:1px solid var(--bg4);border-radius:10px;box-shadow:0 18px 60px rgba(0,0,0,.5);overflow:hidden}
+#quick-title{font-size:11px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:var(--fg3);padding:10px 14px 0}
+#quick-title:empty{display:none}
+#quick-input{width:100%;background:var(--bg2);border:1px solid var(--border);outline:none;border-radius:var(--r-sm);padding:8px 12px;margin:8px 0 0;color:var(--fg0);font-size:13.5px}
+#quick-input:focus{border-color:color-mix(in srgb,var(--accent) 60%,var(--border))}
+.q-in{padding:0 8px 8px}
+#quick-list{max-height:min(440px,60vh);overflow-y:auto;padding:0 6px 6px}
+#quick-list:empty{display:none}
+.qi{display:flex;align-items:center;gap:9px;padding:0 10px;height:30px;border-radius:var(--r-sm);cursor:pointer;color:var(--fg1);font-size:13px}
+.qi.sel{background:var(--bg3);color:var(--fg0)}
+.qi .fi{margin-right:0}
+.qi>.ic{color:var(--fg2)}
+.qi .ql{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qi .ql b{color:var(--accent2);font-weight:650}
+.qi .qd{color:var(--fg3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.qi kbd{margin-left:auto}
+.q-sep{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--fg3);padding:8px 10px 3px;font-weight:650}
+
+/* Context menu */
+#ctxmenu{position:fixed;z-index:1100;min-width:210px;background:var(--bg1);border:1px solid var(--bg4);border-radius:var(--r);box-shadow:0 12px 40px rgba(0,0,0,.45);padding:4px;display:none;font-size:12.5px}
+.mi{display:flex;align-items:center;gap:20px;padding:5px 10px;border-radius:4px;cursor:pointer;color:var(--fg1)}
+.mi:hover{background:var(--accent);color:#fff}
+.mi:hover kbd{color:#fff;background:transparent;border-color:rgba(255,255,255,.3)}
+.mi span{flex:1}
+.mi.danger{color:var(--red)}.mi.danger:hover{background:var(--red);color:#fff}
+.msep{height:1px;background:var(--border);margin:4px 6px}
+
+/* Toasts */
+#toasts{position:fixed;right:16px;bottom:36px;display:flex;flex-direction:column;gap:8px;z-index:1200;pointer-events:none}
+.toast{pointer-events:auto;min-width:240px;max-width:420px;background:var(--bg2);border:1px solid var(--bg4);border-left:3px solid var(--accent);border-radius:var(--r-sm);padding:9px 12px;color:var(--fg1);font-size:12.5px;box-shadow:0 8px 30px rgba(0,0,0,.35);animation:tin .18s ease-out}
+.toast.error{border-left-color:var(--red)}.toast.warn{border-left-color:var(--yellow)}.toast.ok{border-left-color:var(--green)}
+@keyframes tin{from{transform:translateY(8px);opacity:0}}
+
+/* Search view */
+.search-box{padding:2px 12px 8px;display:flex;flex-direction:column;gap:6px}
+.sinput{display:flex;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding-right:3px}
+.sinput:focus-within{border-color:color-mix(in srgb,var(--accent) 60%,var(--border))}
+.sinput input{flex:1;min-width:0;background:none;border:none;outline:none;padding:6px 9px;color:var(--fg0)}
+.tog{width:24px;height:22px;border-radius:4px;font:600 11.5px var(--font-mono);color:var(--fg3)}
+.tog:hover{color:var(--fg1);background:var(--bg3)}
+.tog.on{color:var(--fg0);background:var(--accent-dim);box-shadow:inset 0 0 0 1px var(--accent)}
+#search-summary{font-size:11.5px;color:var(--fg3);padding:0 2px}
+.sr-file{display:flex;align-items:center;gap:4px;height:24px;padding:0 10px 0 4px;cursor:pointer;font-size:12.5px;white-space:nowrap}
+.sr-file:hover{background:var(--bg2)}
+.sr-file .fi{margin-right:2px}
+.sr-file .sdir{color:var(--fg3);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;margin-left:4px}
+.sr-count{background:var(--bg3);color:var(--fg2);border-radius:9px;padding:0 6px;font-size:10.5px}
+.sr-line{height:22px;line-height:22px;padding:0 10px 0 44px;cursor:pointer;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg2)}
+.sr-line:hover{background:var(--bg2);color:var(--fg1)}
+.sr-line mark{background:color-mix(in srgb,var(--yellow) 30%,transparent);color:var(--fg0);border-radius:2px}
+.sr-group.closed .sr-line{display:none}
+.sr-group.closed .chev{transform:none}
+
+/* Settings / plugins views */
+.set-group{font-size:11px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:var(--accent);padding:16px 16px 6px}
+.set-row{padding:6px 16px;display:flex;flex-direction:column;gap:5px}
+.set-row.inline{flex-direction:row;align-items:center;justify-content:space-between;gap:12px}
+.set-label{font-size:12.5px;color:var(--fg1)}
+.set-label small{display:block;color:var(--fg3);font-size:11.5px}
+.set-row input[type=text],.set-row input[type=number],.set-row select{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:5px 8px;outline:none;color:var(--fg0);width:100%}
+.set-row input:focus,.set-row select:focus{border-color:var(--accent)}
+.set-row select option{background:var(--bg1)}
+.switch{position:relative;width:32px;height:18px;flex-shrink:0;cursor:pointer}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch span{position:absolute;inset:0;background:var(--bg4);border-radius:9px;transition:background .15s}
+.switch span::after{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--fg1);transition:transform .15s}
+.switch input:checked+span{background:var(--accent)}
+.switch input:checked+span::after{transform:translateX(14px);background:#fff}
+.btn{padding:5px 12px;border-radius:var(--r-sm);background:var(--bg3);border:1px solid var(--border);color:var(--fg1);font-size:12.5px}
+.btn:hover{background:var(--bg4);color:var(--fg0)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent2)}
+.set-actions,.plug-actions{display:flex;gap:6px;flex-wrap:wrap;padding:14px 16px}
+.plug{margin:0 12px 8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg0)}
+.plug-top{display:flex;align-items:center;gap:8px}
+.plug-name{font-weight:600;color:var(--fg0);flex:1;overflow:hidden;text-overflow:ellipsis}
+.plug-status{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--fg3)}
+.plug.loaded .plug-status{color:var(--green)}.plug.error .plug-status{color:var(--red)}
+.plug-err{color:var(--red);font:11.5px var(--font-mono);margin-top:6px;word-break:break-word}
+.plug-links{margin-top:6px;font-size:12px}
+.plug-links a{color:var(--accent2);text-decoration:none;cursor:pointer}
+.empty{color:var(--fg3);padding:4px 16px 12px;font-size:12.5px}
+.api-doc{margin:8px 12px 20px;font-size:12px;color:var(--fg2)}
+.api-doc summary{cursor:pointer;color:var(--fg1);padding:4px 0}
+.api-doc pre{font:11.5px/1.55 var(--font-mono);background:var(--bg0);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px;overflow-x:auto;margin-top:6px;color:var(--fg1);user-select:text}
+
+/* AI status, progress, review */
+.sb-ai .ic{width:13px;height:13px}
+.sb-ai.on{color:var(--accent2)}
+.sb-ai.off{color:var(--fg3)}
+.sb-ai.warn{color:var(--yellow)}
+.sb-ai.busy .ic{animation:spin 1.1s linear infinite;color:var(--accent)}
+#ai-progress{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:20;display:none;align-items:center;gap:10px;padding:6px 8px 6px 12px;border-radius:18px;background:var(--bg2);border:1px solid var(--accent);box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:12.5px;color:var(--fg1);white-space:nowrap}
+#ai-progress.open{display:flex}
+#ai-progress .ic{width:14px;height:14px;color:var(--accent);animation:spin 1.1s linear infinite}
+#ai-progress small{color:var(--fg3)}
+#ai-progress button{padding:2px 9px;border-radius:10px;background:var(--bg4);font-size:11.5px}
+#ai-progress button:hover{background:var(--red);color:#fff}
+#review{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}
+#review.open{display:flex}
+.rv{width:min(1200px,calc(100vw - 48px));height:min(760px,calc(100vh - 80px));display:flex;flex-direction:column;background:var(--bg1);border:1px solid var(--bg4);border-radius:12px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+.rv-head{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--border)}
+.rv-head svg{width:18px;height:18px;color:var(--accent)}
+.rv-title{flex:1;min-width:0;font-weight:600;color:var(--fg0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-sub{font-size:11.5px;color:var(--fg3);white-space:nowrap}
+#review-diff{flex:1;min-height:0}
+.btn kbd{margin-left:6px;background:transparent;color:inherit;opacity:.7;border-color:currentColor}
+/* Side panel (plugins) */
+#side-view{position:absolute;top:0;right:0;bottom:0;width:var(--side-w,48%);display:none;flex-direction:column;border-left:1px solid var(--border);background:var(--bg0)}
+#editor-wrap.has-side #side-view{display:flex}
+#editor-wrap.has-side #monaco,#editor-wrap.has-side #welcome,#editor-wrap.has-side #image-view{right:var(--side-w,48%)}
+.sv-head{height:32px;display:flex;align-items:center;padding:0 6px 0 14px;border-bottom:1px solid var(--border);background:var(--bg1);flex-shrink:0}
+.sv-title{flex:1;font-size:11px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:var(--fg2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sv-body{flex:1;overflow:auto;min-height:0}
+.mi .mcheck{width:14px;color:var(--accent);flex:0 0 14px;margin-right:-12px}
+.ai-editing{background:var(--accent-dim)}
+
+/* Monaco polish */
+.monaco-editor .margin,.monaco-editor-background{transition:background-color .2s}
+.monaco-editor .suggest-widget,.monaco-editor .monaco-hover{border-radius:var(--r-sm)!important;overflow:hidden}
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="titlebar">
+    <div class="logo" id="logo"></div>
+    <div class="pill" id="tb-folder" title="Open folder (Ctrl+O)"></div>
+    <div class="pill" id="tb-search" title="Go to file (Ctrl+P)"></div>
+    <span class="effort" id="tb-effort" title="Effort level"></span>
+    <div class="pill" id="tb-model" title="Model"><span class="dot"></span><span></span></div>
+    <button class="icon-btn" id="tb-sidebar" title="Toggle sidebar (Ctrl+B)"></button>
+    <button class="icon-btn" id="tb-term" title="Toggle terminal (Ctrl+`)"></button>
+    <button class="icon-btn" id="tb-chat" title="Toggle chat (Ctrl+Alt+B)"></button>
+  </div>
+
+  <div id="workspace">
+    <nav id="activitybar">
+      <button class="ab" data-view="explorer" title="Explorer (Ctrl+Shift+E)"></button>
+      <button class="ab" data-view="search" title="Search (Ctrl+Shift+F)"></button>
+      <button class="ab" data-view="plugins" title="Plugins (Ctrl+Shift+X)"></button>
+      <div class="spacer"></div>
+      <button class="ab" id="ab-chat" title="Chat (Ctrl+L)"></button>
+      <button class="ab" data-view="settings" title="Settings (Ctrl+,)"></button>
+    </nav>
+
+    <aside id="sidebar">
+      <section class="view" id="view-explorer">
+        <div class="view-head">
+          <span class="view-title" id="explorer-title">Explorer</span>
+          <button class="icon-btn" data-act="newFile" title="New file"></button>
+          <button class="icon-btn" data-act="newFolder" title="New folder"></button>
+          <button class="icon-btn" data-act="upFolder" title="Parent folder"></button>
+          <button class="icon-btn" data-act="sort" title="Sort files"></button>
+          <button class="icon-btn" data-act="refresh" title="Refresh"></button>
+          <button class="icon-btn" data-act="collapse" title="Collapse all"></button>
+        </div>
+        <div class="view-body"><div id="tree"></div></div>
+      </section>
+      <section class="view" id="view-search">
+        <div class="view-head"><span class="view-title">Search</span></div>
+        <div class="search-box">
+          <div class="sinput">
+            <input id="search-input" placeholder="Search in folder" spellcheck="false">
+            <button class="tog" id="search-case" title="Match case">Aa</button>
+            <button class="tog" id="search-regex" title="Regular expression">.*</button>
+          </div>
+          <div id="search-summary"></div>
+        </div>
+        <div class="view-body" id="search-results"></div>
+      </section>
+      <section class="view" id="view-plugins">
+        <div class="view-head"><span class="view-title">Plugins</span></div>
+        <div class="view-body" id="plugins-body"></div>
+      </section>
+      <section class="view" id="view-settings">
+        <div class="view-head"><span class="view-title">Settings</span></div>
+        <div class="view-body" id="settings-body"></div>
+      </section>
+    </aside>
+    <div class="split-x" id="split-sidebar"></div>
+
+    <main id="center">
+      <div id="tabbar"></div>
+      <div id="crumbs"></div>
+      <div id="editor-wrap">
+        <div id="monaco"></div>
+        <div id="image-view"><img alt=""><div class="meta"></div></div>
+        <div id="welcome"></div>
+        <div id="side-view"><div class="sv-head"><span class="sv-title"></span><button class="icon-btn" id="side-close" title="Close"></button></div><div class="sv-body"></div></div>
+        <div id="ai-progress"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/></svg><span id="ai-progress-text"></span><small id="ai-progress-count"></small><button id="ai-progress-cancel">Cancel · Esc</button></div>
+      </div>
+      <div class="split-y" id="term-split"></div>
+      <section id="term-panel">
+        <div id="term-head">
+          <span class="view-title">Terminal</span>
+          <span class="tsub" id="term-sub"></span>
+          <button class="icon-btn" data-act="runFile" title="Run active file (F5)"></button>
+          <button class="icon-btn" data-act="termClear" title="Clear"></button>
+          <button class="icon-btn" data-act="termRestart" title="Restart shell"></button>
+          <button class="icon-btn" data-act="termMax" title="Maximize panel"></button>
+          <button class="icon-btn" data-act="termHide" title="Hide (Ctrl+`)"></button>
+        </div>
+        <div id="xterm"></div>
+      </section>
+    </main>
+
+    <div class="split-x" id="split-chat"></div>
+    <aside id="chat">
+      <div id="chat-head">
+        <span class="ch-title">Chat</span>
+        <button class="icon-btn" data-act="newChat" title="New chat"></button>
+        <button class="icon-btn" data-act="chatHide" title="Hide chat (Ctrl+Alt+B)"></button>
+      </div>
+      <div id="messages"></div>
+      <div id="input-area">
+        <div id="slash"></div>
+        <div id="input-box">
+          <textarea id="chat-input" rows="1" spellcheck="false" placeholder="Ask ocode to build, fix, or explain…  ( / for commands )"></textarea>
+          <div class="input-row">
+            <span class="mini-pill" id="ci-effort" title="Effort"></span>
+            <span class="mini-pill" id="ci-file" title="Active file is shared with ocode"></span>
+            <span class="hint">⏎ send · ⇧⏎ newline</span>
+            <button id="send-btn" title="Send"></button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer id="statusbar">
+    <div class="grp" id="sb-left"></div>
+    <div class="spacer"></div>
+    <div class="grp" id="sb-right"></div>
+  </footer>
+</div>
+
+<div id="quick-back"><div id="quick"><div id="quick-title"></div><div class="q-in"><input id="quick-input" spellcheck="false" autocomplete="off"></div><div id="quick-list"></div></div></div>
+<div id="review"><div class="rv">
+  <div class="rv-head"><span id="review-logo"></span><span class="rv-title" id="review-title"></span><span class="rv-sub">You can edit the right side before accepting</span>
+    <button class="btn" id="review-reject">Reject<kbd>Esc</kbd></button><button class="btn primary" id="review-accept">Accept<kbd>Ctrl ⏎</kbd></button></div>
+  <div id="review-diff"></div>
+</div></div>
+<div id="ctxmenu"></div>
+<div id="toasts"></div>
+
+<script>
+'use strict';
+// ── Icons & tiny DOM helpers ──────────────────────────────────────────────────
+const ICONS = {
+  files:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h6"/>',
+  file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h6"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  blocks:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/>',
+  sliders:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z"/>',
+  terminal:'<rect x="2.5" y="4" width="19" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/>',
+  sidebar:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',
+  panelBottom:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 14.5h18"/>',
+  panelRight:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>',
+  filePlus:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h6M12 18v-6M9 15h6"/>',
+  folderPlus:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v6M9 14h6"/>',
+  folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  folderOpen:'<path d="M4 20h13.5a2 2 0 0 0 1.9-1.4l1.9-6A1 1 0 0 0 20.3 11H7.4a2 2 0 0 0-1.9 1.4L3.5 19"/><path d="M3 18V7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2"/>',
+  refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  collapse:'<path d="m7 11 5-5 5 5M7 18l5-5 5 5"/>',
+  up:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  chev:'<path d="m9 6 6 6-6 6"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  play:'<path d="M7 4.5v15l12.5-7.5z"/>',
+  stop:'<rect x="5" y="5" width="14" height="14" rx="2.5"/>',
+  ban:'<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>',
+  maximize:'<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  branch:'<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9c0 5-6 4-11 8"/>',
+  error:'<circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/>',
+  warn:'<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+  zap:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  copy:'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
+  insert:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  check:'<path d="m5 12 5 5 9-10"/>',
+  command:'<path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/>',
+  history:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+  sparkle:'<path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/>',
+  sort:'<path d="M3 6h11M3 12h8M3 18h5M18 5v15M15 17l3 3 3-3"/>',
+};
+const LOGO = '<svg viewBox="0 0 24 24"><path d="M12 1.5 22.5 12 12 22.5 1.5 12z" fill="currentColor"/><path d="M12 7.2 16.8 12 12 16.8 7.2 12z" fill="var(--bg1)"/><path d="M12 10 14 12 12 14 10 12z" fill="currentColor"/></svg>';
+const icon = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24">${ICONS[n] || ''}</svg>`;
+const $ = (s, root = document) => root.querySelector(s);
+const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const enc = encodeURIComponent;
+function h(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === undefined || v === null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'html') e.innerHTML = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k instanceof Node ? k : document.createTextNode(k));
+  return e;
+}
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+// ── Paths ─────────────────────────────────────────────────────────────────────
+let S = {}, INFO = {}, MODELS = [];
+const basename = p => p.replace(/\/+$/, '').split('/').pop() || '/';
+const dirname = p => { const s = p.replace(/\/+$/, ''); const i = s.lastIndexOf('/'); return i <= 0 ? '/' : s.slice(0, i); };
+const extOf = n => { const i = n.lastIndexOf('.'); return i > 0 ? n.slice(i + 1).toLowerCase() : ''; };
+const join = (a, b) => (a.endsWith('/') ? a : a + '/') + b;
+const tilde = p => INFO.home && (p === INFO.home || p.startsWith(INFO.home + '/')) ? '~' + p.slice(INFO.home.length) : p;
+const untilde = p => p.startsWith('~') ? INFO.home + p.slice(1) : p;
+const absPath = p => { p = untilde(String(p).trim()); return p.startsWith('/') ? p : join(S.cwd, p.replace(/^\.\//, '')); };
+const rel = p => p.startsWith(S.cwd + '/') ? p.slice(S.cwd.length + 1) : tilde(p);
+const shq = s => `'${String(s).replace(/'/g, `'\\''`)}'`;
+
+// ── Backend ───────────────────────────────────────────────────────────────────
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || (d && d.error)) throw new Error((d && d.error) || `${r.status} ${r.statusText}`);
+  return d;
+}
+const post = (path, body) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+// ── Events ────────────────────────────────────────────────────────────────────
+const listeners = {};
+function on(ev, cb) { (listeners[ev] ||= []).push(cb); return () => { listeners[ev] = listeners[ev].filter(x => x !== cb); }; }
+function emit(ev, ...a) { for (const cb of listeners[ev] || []) { try { cb(...a); } catch (e) { console.error(e); } } }
+
+// ── Toasts ────────────────────────────────────────────────────────────────────
+function toast(msg, kind = '', ms = 3500) {
+  const t = h('div', { class: 'toast ' + kind }, msg);
+  $('#toasts').append(t);
+  setTimeout(() => { t.style.transition = 'opacity .25s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 260); }, ms);
+}
+
+// ── Themes ────────────────────────────────────────────────────────────────────
+const THEMES = {
+  ocode: { label: 'ocode Dark', type: 'dark',
+    p: { bg0:'#121214', bg1:'#18181b', bg2:'#1f1f23', bg3:'#27272c', bg4:'#33333a', bg5:'#45454e', fg0:'#f2f2f4', fg1:'#cfcfd6', fg2:'#8e8e99', fg3:'#5f5f69', accent:'#d97757', accent2:'#eba383', 'accent-dim':'rgba(217,119,87,.16)', border:'#26262b', green:'#8fbf7a', red:'#e5707a', yellow:'#e3b867', blue:'#7aa6e0', cyan:'#6cc4c9', purple:'#b99ae6' },
+    tokens: { comment:['#6b6b78','italic'], keyword:'#d97757', string:'#9fca82', 'string.escape':'#e3b867', number:'#e3b867', regexp:'#b99ae6', type:'#7ec4cf', 'type.identifier':'#7ec4cf', identifier:'#e6e6ea', variable:'#e6e6ea', 'variable.predefined':'#eba383', constant:'#e3b867', delimiter:'#9a9aa6', operator:'#b0b0bb', tag:'#d97757', 'attribute.name':'#e3b867', 'attribute.value':'#9fca82', metatag:'#b99ae6', annotation:'#b99ae6', 'string.key.json':'#7aa6e0', 'string.value.json':'#9fca82', predefined:'#b99ae6' } },
+  'ocode-light': { label: 'ocode Light', type: 'light',
+    p: { bg0:'#ffffff', bg1:'#f7f7f5', bg2:'#efefec', bg3:'#e6e6e2', bg4:'#d9d9d4', bg5:'#c4c4be', fg0:'#1b1b1b', fg1:'#3a3a3a', fg2:'#6e6e6e', fg3:'#9b9b9b', accent:'#c2613f', accent2:'#d97757', 'accent-dim':'rgba(194,97,63,.13)', border:'#e4e4df', green:'#4d7c0f', red:'#c42b3a', yellow:'#a16207', blue:'#2563eb', cyan:'#0e7490', purple:'#7c3aed' },
+    tokens: { comment:['#8c8c8c','italic'], keyword:'#c2613f', string:'#4d7c0f', number:'#a16207', regexp:'#7c3aed', type:'#0e7490', 'type.identifier':'#0e7490', identifier:'#1b1b1b', variable:'#1b1b1b', 'variable.predefined':'#7c3aed', constant:'#a16207', delimiter:'#555555', tag:'#c2613f', 'attribute.name':'#a16207', 'attribute.value':'#4d7c0f', metatag:'#7c3aed', annotation:'#7c3aed', 'string.key.json':'#2563eb' } },
+  'one-dark': { label: 'One Dark', type: 'dark',
+    p: { bg0:'#282c34', bg1:'#21252b', bg2:'#2c313a', bg3:'#333842', bg4:'#3e4451', bg5:'#4b5263', fg0:'#d7dae0', fg1:'#abb2bf', fg2:'#7f848e', fg3:'#5c6370', accent:'#61afef', accent2:'#8cc4f5', 'accent-dim':'rgba(97,175,239,.15)', border:'#181a1f', green:'#98c379', red:'#e06c75', yellow:'#e5c07b', blue:'#61afef', cyan:'#56b6c2', purple:'#c678dd' },
+    tokens: { comment:['#5c6370','italic'], keyword:'#c678dd', string:'#98c379', number:'#d19a66', regexp:'#56b6c2', type:'#e5c07b', 'type.identifier':'#e5c07b', identifier:'#abb2bf', variable:'#e06c75', 'variable.predefined':'#e06c75', constant:'#d19a66', delimiter:'#abb2bf', tag:'#e06c75', 'attribute.name':'#d19a66', 'attribute.value':'#98c379', metatag:'#c678dd', annotation:'#c678dd', 'string.key.json':'#e06c75' } },
+  dracula: { label: 'Dracula', type: 'dark',
+    p: { bg0:'#282a36', bg1:'#21222c', bg2:'#2b2d3a', bg3:'#343746', bg4:'#44475a', bg5:'#565a72', fg0:'#f8f8f2', fg1:'#e2e2dc', fg2:'#a0a4bd', fg3:'#6272a4', accent:'#bd93f9', accent2:'#d6bcfa', 'accent-dim':'rgba(189,147,249,.16)', border:'#191a21', green:'#50fa7b', red:'#ff5555', yellow:'#f1fa8c', blue:'#8be9fd', cyan:'#8be9fd', purple:'#bd93f9' },
+    tokens: { comment:['#6272a4','italic'], keyword:'#ff79c6', string:'#f1fa8c', number:'#bd93f9', regexp:'#ff5555', type:['#8be9fd','italic'], 'type.identifier':'#8be9fd', identifier:'#f8f8f2', constant:'#bd93f9', 'variable.predefined':'#bd93f9', delimiter:'#f8f8f2', tag:'#ff79c6', 'attribute.name':'#50fa7b', 'attribute.value':'#f1fa8c', metatag:'#ff79c6', annotation:'#50fa7b', 'string.key.json':'#8be9fd' } },
+  'tokyo-night': { label: 'Tokyo Night', type: 'dark',
+    p: { bg0:'#1a1b26', bg1:'#16161e', bg2:'#1f2335', bg3:'#292e42', bg4:'#343a55', bg5:'#414868', fg0:'#c0caf5', fg1:'#a9b1d6', fg2:'#737aa2', fg3:'#565f89', accent:'#7aa2f7', accent2:'#a4bff9', 'accent-dim':'rgba(122,162,247,.16)', border:'#101014', green:'#9ece6a', red:'#f7768e', yellow:'#e0af68', blue:'#7aa2f7', cyan:'#7dcfff', purple:'#bb9af7' },
+    tokens: { comment:['#565f89','italic'], keyword:'#bb9af7', string:'#9ece6a', number:'#ff9e64', regexp:'#b4f9f8', type:'#2ac3de', 'type.identifier':'#2ac3de', identifier:'#c0caf5', constant:'#ff9e64', 'variable.predefined':'#f7768e', delimiter:'#89ddff', operator:'#89ddff', tag:'#f7768e', 'attribute.name':'#bb9af7', 'attribute.value':'#9ece6a', metatag:'#7dcfff', annotation:'#e0af68', 'string.key.json':'#7aa2f7' } },
+  catppuccin: { label: 'Catppuccin Mocha', type: 'dark',
+    p: { bg0:'#1e1e2e', bg1:'#181825', bg2:'#232334', bg3:'#313244', bg4:'#3d3f55', bg5:'#45475a', fg0:'#cdd6f4', fg1:'#bac2de', fg2:'#7f849c', fg3:'#6c7086', accent:'#cba6f7', accent2:'#dcc4fa', 'accent-dim':'rgba(203,166,247,.16)', border:'#11111b', green:'#a6e3a1', red:'#f38ba8', yellow:'#f9e2af', blue:'#89b4fa', cyan:'#94e2d5', purple:'#cba6f7' },
+    tokens: { comment:['#6c7086','italic'], keyword:'#cba6f7', string:'#a6e3a1', number:'#fab387', regexp:'#f5c2e7', type:'#f9e2af', 'type.identifier':'#f9e2af', identifier:'#cdd6f4', constant:'#fab387', 'variable.predefined':'#f38ba8', delimiter:'#9399b2', operator:'#89dceb', tag:'#89b4fa', 'attribute.name':'#f9e2af', 'attribute.value':'#a6e3a1', metatag:'#f5c2e7', annotation:'#f9e2af', 'string.key.json':'#89b4fa' } },
+};
+
+function monacoTheme(t) {
+  const p = t.p, x = c => c.replace('#', ''), a = (c, al) => (c.length === 7 ? c + al : c);
+  const rules = [{ token: '', foreground: x(p.fg0), background: x(p.bg0) }];
+  for (const [token, v] of Object.entries(t.tokens || {})) {
+    const [fg, style] = Array.isArray(v) ? v : [v];
+    rules.push({ token, foreground: x(fg), ...(style ? { fontStyle: style } : {}) });
+  }
+  const light = t.type === 'light';
+  return { base: light ? 'vs' : 'vs-dark', inherit: true, rules, colors: {
+    'editor.background': p.bg0, 'editor.foreground': p.fg0, 'editorGutter.background': p.bg0, 'minimap.background': p.bg0,
+    'editorLineNumber.foreground': p.fg3, 'editorLineNumber.activeForeground': p.fg1,
+    'editor.lineHighlightBackground': light ? p.bg1 : a(p.fg0, '08'), 'editor.lineHighlightBorder': '#00000000',
+    'editor.selectionBackground': a(p.accent, '40'), 'editor.inactiveSelectionBackground': a(p.accent, '22'),
+    'editor.selectionHighlightBackground': a(p.accent, '20'), 'editor.wordHighlightBackground': a(p.fg0, '14'), 'editor.wordHighlightStrongBackground': a(p.fg0, '1f'),
+    'editor.findMatchBackground': a(p.yellow, '66'), 'editor.findMatchHighlightBackground': a(p.yellow, '30'),
+    'editorCursor.foreground': p.accent, 'editorWhitespace.foreground': p.bg5,
+    'editorIndentGuide.background1': p.border, 'editorIndentGuide.activeBackground1': p.bg5,
+    'editorBracketMatch.background': a(p.accent, '22'), 'editorBracketMatch.border': a(p.accent, '88'),
+    'editorBracketHighlight.foreground1': p.yellow, 'editorBracketHighlight.foreground2': p.purple, 'editorBracketHighlight.foreground3': p.blue,
+    'editorWidget.background': p.bg1, 'editorWidget.border': p.bg4, 'editorSuggestWidget.background': p.bg1, 'editorSuggestWidget.border': p.bg4,
+    'editorSuggestWidget.selectedBackground': p.bg3, 'editorSuggestWidget.highlightForeground': p.accent2, 'editorHoverWidget.background': p.bg1, 'editorHoverWidget.border': p.bg4,
+    'input.background': p.bg2, 'input.border': p.bg4, 'focusBorder': a(p.accent, '99'), 'inputOption.activeBorder': p.accent,
+    'list.hoverBackground': p.bg2, 'list.activeSelectionBackground': p.bg3, 'list.activeSelectionForeground': p.fg0, 'list.highlightForeground': p.accent2, 'list.focusHighlightForeground': p.accent2,
+    'quickInput.background': p.bg1, 'quickInputList.focusBackground': p.bg3, 'pickerGroup.foreground': p.accent,
+    'menu.background': p.bg1, 'menu.foreground': p.fg1, 'menu.selectionBackground': p.accent, 'menu.selectionForeground': '#ffffff', 'menu.separatorBackground': p.border, 'menu.border': p.bg4,
+    'scrollbarSlider.background': a(p.fg3, '40'), 'scrollbarSlider.hoverBackground': a(p.fg3, '70'), 'scrollbarSlider.activeBackground': a(p.fg3, '99'), 'scrollbar.shadow': '#00000000',
+    'editorOverviewRuler.border': '#00000000', 'editorStickyScroll.background': p.bg0, 'editorStickyScrollHover.background': p.bg2, 'editorStickyScroll.shadow': '#00000044',
+    'editorError.foreground': p.red, 'editorWarning.foreground': p.yellow, 'editorInfo.foreground': p.blue,
+    'peekViewEditor.background': p.bg1, 'peekViewResult.background': p.bg1, 'peekView.border': p.accent,
+  } };
+}
+
+function xtermTheme(t) {
+  const p = t.p, light = t.type === 'light';
+  return { background: p.bg1, foreground: p.fg1, cursor: p.accent, cursorAccent: p.bg1, selectionBackground: p.accent + '44',
+    black: light ? '#3a3a3a' : p.bg3, red: p.red, green: p.green, yellow: p.yellow, blue: p.blue, magenta: p.purple, cyan: p.cyan, white: light ? p.fg2 : p.fg1,
+    brightBlack: p.fg3, brightRed: p.red, brightGreen: p.green, brightYellow: p.yellow, brightBlue: p.blue, brightMagenta: p.purple, brightCyan: p.cyan, brightWhite: p.fg0 };
+}
+
+function addTheme(id, t) {
+  const base = THEMES[t.type === 'light' ? 'ocode-light' : 'ocode'];
+  THEMES[id] = { label: t.label || id, type: t.type || 'dark', p: { ...base.p, ...(t.p || {}) }, tokens: t.tokens || base.tokens };
+  if (window.monaco) monaco.editor.defineTheme('t-' + id, monacoTheme(THEMES[id]));
+}
+
+function applyTheme(id) {
+  const t = THEMES[id] || THEMES.ocode;
+  const st = document.documentElement.style;
+  for (const [k, v] of Object.entries(t.p)) st.setProperty('--' + k, v);
+  st.colorScheme = t.type;
+  monaco.editor.setTheme('t-' + (THEMES[id] ? id : 'ocode'));
+  if (term) term.options.theme = xtermTheme(t);
+  emit('themeChange', id);
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+let pendingSettings = {};
+const flushSettings = debounce(() => { const p = pendingSettings; pendingSettings = {}; post('/api/settings', p).catch(e => toast('Could not save settings: ' + e.message, 'error')); }, 300);
+function setSettings(patch, opts = {}) {
+  Object.assign(S, patch); Object.assign(pendingSettings, patch); flushSettings();
+  applySettings(patch, opts); emit('settingsChange', patch);
+}
+const QUIET_KEYS = new Set(['openTabs', 'activeTab', 'recentFiles', 'layout', 'cwd', 'disabledPlugins']);
+function applySettings(patch, opts = {}) {
+  if (Object.keys(patch).every(k => QUIET_KEYS.has(k))) return;
+  if ('theme' in patch) applyTheme(S.theme);
+  if (editor) editor.updateOptions(editorOptions());
+  if (term && ('terminalFontSize' in patch || 'fontFamily' in patch)) { term.options.fontSize = S.terminalFontSize; term.options.fontFamily = S.fontFamily; fitTerm(); }
+  if ('showHidden' in patch || 'sortOrder' in patch || 'foldersFirst' in patch) refreshTree();
+  if ('aiComplete' in patch || 'completeHost' in patch || 'completeModel' in patch) checkCompleteStatus();
+  if ('effort' in patch || 'model' in patch) renderChrome();
+  if (!opts.fromForm && $('#view-settings').classList.contains('active')) renderSettingsView();
+}
+async function reloadSettingsFromDisk() {
+  try { S = await api('/api/settings'); applySettings({ ...S }); toast('Settings reloaded', 'ok'); } catch (e) { toast(e.message, 'error'); }
+}
+
+const EFFORT_PROMPTS = {
+  low: 'Be very concise. Minimal explanation. Just do the task.',
+  medium: 'Balance detail and brevity. Briefly explain key decisions.',
+  high: 'Think step by step and be thorough. Explain your reasoning before making changes.',
+  max: 'Reason exhaustively. Consider edge cases, alternatives and trade-offs, and verify your work by reading files back or running them.',
+};
+
+// ── Editor ────────────────────────────────────────────────────────────────────
+let editor = null;
+const tabs = new Map();
+let active = null;
+const IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif']);
+
+function editorOptions() {
+  return {
+    fontSize: S.fontSize, fontFamily: S.fontFamily, fontLigatures: S.fontLigatures, lineHeight: 1.6,
+    wordWrap: S.wordWrap, minimap: { enabled: S.minimap, renderCharacters: false, maxColumn: 100, scale: 2, showSlider: 'mouseover' },
+    lineNumbers: S.lineNumbers, renderWhitespace: S.renderWhitespace, cursorBlinking: S.cursorBlinking, cursorSmoothCaretAnimation: 'on',
+    smoothScrolling: S.smoothScrolling, bracketPairColorization: { enabled: S.bracketPairColorization }, guides: { bracketPairs: 'active', indentation: true, highlightActiveIndentation: true },
+    stickyScroll: { enabled: S.stickyScroll }, padding: { top: 10, bottom: 10 }, scrollBeyondLastLine: false, automaticLayout: true, fixedOverflowWidgets: true,
+    renderLineHighlight: 'all', mouseWheelZoom: true, linkedEditing: true, roundedSelection: true, overviewRulerBorder: false, hideCursorInOverviewRuler: true,
+    scrollbar: { verticalScrollbarSize: 12, horizontalScrollbarSize: 12, useShadows: false }, suggest: { preview: true, showStatusBar: true },
+    inlayHints: { enabled: 'on' }, colorDecorators: true, inlineSuggest: { enabled: S.aiComplete !== false, showToolbar: 'onHover' }, folding: true, showFoldingControls: 'mouseover', dragAndDrop: true, multiCursorModifier: 'alt',
+  };
+}
+
+function createEditor() {
+  editor = monaco.editor.create($('#monaco'), { model: null, ...editorOptions() });
+  editor.onDidChangeCursorSelection(() => { renderPosStatus(); renderChatFilePill(); });
+  monaco.editor.onDidChangeMarkers(uris => { const m = editor.getModel(); if (m && uris.some(u => u.toString() === m.uri.toString())) renderStatus(); });
+  const action = (id, label, run, order) => editor.addAction({ id, label, contextMenuGroupId: '0_ocode', contextMenuOrder: order, run });
+  action('ocode.edit', 'Edit with ocode…  (Ctrl+K)', () => runCommand('ai.inlineEdit'), 0);
+  action('ocode.ask', 'Ask ocode About Selection', () => runCommand('ai.askSelection'), 1);
+  action('ocode.explain', 'Explain with ocode', () => runCommand('ai.explainSelection'), 2);
+  action('ocode.fix', 'Fix with ocode', () => runCommand('ai.fixSelection'), 3);
+  action('ocode.runSel', 'Run Selection in Terminal', () => runCommand('terminal.runSelection'), 4);
+}
+
+const isDirty = t => t && t.kind === 'text' && t.model.getAlternativeVersionId() !== t.savedVersion;
+
+async function openFile(path, opts = {}) {
+  path = absPath(path);
+  let t = tabs.get(path);
+  if (!t) {
+    const name = basename(path);
+    if (IMAGE_EXT.has(extOf(name))) t = { path, name, kind: 'image' };
+    else {
+      let d;
+      try { d = await api('/api/file?path=' + enc(path)); }
+      catch (e) { if (!opts.silent) toast(`Can't open ${name}: ${e.message}`, 'error'); return null; }
+      if (d.binary) { if (!opts.silent) toast(`${name} is a binary file`, 'warn'); return null; }
+      if (tabs.has(path)) t = tabs.get(path);
+      else {
+        const uri = monaco.Uri.file(path);
+        let model = monaco.editor.getModel(uri);
+        if (model) model.setValue(d.content); else model = monaco.editor.createModel(d.content, undefined, uri);
+        if (!d.content) model.updateOptions({ tabSize: S.tabSize, insertSpaces: S.insertSpaces });
+        t = { path, name, kind: 'text', model, viewState: null, savedVersion: model.getAlternativeVersionId() };
+        t.sub = model.onDidChangeContent(() => onContentChange(t));
+      }
+    }
+    if (!tabs.has(path)) { tabs.set(path, t); pushRecent(path); emit('fileOpen', path); }
+  }
+  activate(path, opts);
+  if (opts.line && t.kind === 'text') {
+    const ln = opts.line, col = (opts.col || 0) + 1;
+    editor.revealLineInCenter(ln);
+    editor.setSelection(opts.endCol ? new monaco.Selection(ln, col, ln, opts.endCol + 1) : new monaco.Selection(ln, col, ln, col));
+    if (!opts.noFocus) editor.focus();
+  }
+  return t;
+}
+
+function activate(path, opts = {}) {
+  const prev = tabs.get(active);
+  if (prev && prev.kind === 'text' && editor.getModel() === prev.model) prev.viewState = editor.saveViewState();
+  active = tabs.has(path) ? path : null;
+  const t = tabs.get(active);
+  $('#monaco').style.visibility = t?.kind === 'text' ? 'visible' : 'hidden';
+  $('#image-view').style.display = t?.kind === 'image' ? 'grid' : 'none';
+  $('#welcome').style.display = t ? 'none' : 'flex';
+  if (t?.kind === 'text') {
+    editor.setModel(t.model);
+    if (t.viewState) editor.restoreViewState(t.viewState);
+    if (!opts.noFocus) editor.focus();
+  } else {
+    editor.setModel(null);
+    if (t?.kind === 'image') {
+      const img = $('#image-view img');
+      img.onload = () => { $('#image-view .meta').textContent = `${img.naturalWidth} × ${img.naturalHeight}`; };
+      img.src = '/api/raw?path=' + enc(t.path) + '&v=' + Date.now();
+    } else renderWelcome();
+  }
+  renderTabs(); renderCrumbs(); renderStatus(); markTreeActive(); renderChatFilePill();
+  document.title = t ? `${t.name} — ${basename(S.cwd)}` : `ocode — ${basename(S.cwd)}`;
+  if (t?.kind === 'text') revealInTree(t.path);
+  saveSession();
+}
+
+const saveSession = debounce(() => setSettings({ openTabs: [...tabs.keys()], activeTab: active }), 400);
+
+const autosaveTimers = new Map();
+function onContentChange(t) {
+  renderTabsDirty(t);
+  if (S.autoSave) {
+    clearTimeout(autosaveTimers.get(t.path));
+    autosaveTimers.set(t.path, setTimeout(() => { if (isDirty(t)) saveTab(t); }, 1000));
+  }
+}
+
+async function saveTab(t, manual = false) {
+  if (!t || t.kind !== 'text') return;
+  if (manual && S.formatOnSave && t.path === active) { try { await editor.getAction('editor.action.formatDocument')?.run(); } catch {} }
+  const version = t.model.getAlternativeVersionId();
+  const content = t.model.getValue();
+  try {
+    await post('/api/file', { path: t.path, content });
+    t.savedVersion = version;
+    renderTabsDirty(t);
+    emit('fileSave', t.path, content);
+    if (t.path === INFO.settingsFile) reloadSettingsFromDisk();
+    refreshGitSoon();
+  } catch (e) { toast('Save failed: ' + e.message, 'error'); }
+}
+const saveAll = () => Promise.all([...tabs.values()].filter(isDirty).map(t => saveTab(t)));
+
+async function closeTab(path, force = false) {
+  const t = tabs.get(path);
+  if (!t) return;
+  if (!force && isDirty(t)) {
+    const choice = await askPick(`Save changes to ${t.name}?`, [{ label: 'Save', value: 'save' }, { label: "Don't Save", value: 'discard' }, { label: 'Cancel', value: 'cancel' }]);
+    if (!choice || choice === 'cancel') return;
+    if (choice === 'save') await saveTab(t);
+  }
+  const keys = [...tabs.keys()], idx = keys.indexOf(path);
+  t.sub?.dispose(); t.model?.dispose(); tabs.delete(path);
+  if (active === path) { const next = keys[idx + 1] || keys[idx - 1]; activate(next && next !== path ? next : null); }
+  else { renderTabs(); saveSession(); }
+}
+
+async function reloadIfOpen(path) {
+  const t = tabs.get(path);
+  if (!t) return false;
+  if (t.kind === 'image') { if (active === path) activate(path, { noFocus: true }); return true; }
+  if (isDirty(t)) return true;
+  try {
+    const d = await api('/api/file?path=' + enc(path));
+    if (d.content !== undefined && d.content !== t.model.getValue()) {
+      t.model.pushEditOperations([], [{ range: t.model.getFullModelRange(), text: d.content }], () => null);
+      t.savedVersion = t.model.getAlternativeVersionId();
+      renderTabsDirty(t);
+    }
+  } catch {}
+  return true;
+}
+
+function pushRecent(p) { setSettings({ recentFiles: [p, ...(S.recentFiles || []).filter(x => x !== p)].slice(0, 15) }); }
+
+// ── Tabs / breadcrumbs / welcome ──────────────────────────────────────────────
+const FT = { js:['JS','#e8d44d'], mjs:['JS','#e8d44d'], cjs:['JS','#e8d44d'], jsx:['JSX','#61dafb'], ts:['TS','#4f8fe6'], tsx:['TSX','#4f8fe6'], py:['PY','#5a9fd4'], ipynb:['NB','#f37726'], rs:['RS','#dea584'], go:['GO','#00add8'],
+  c:['C','#7aa6e0'], h:['H','#b99ae6'], cpp:['C++','#659ad2'], cc:['C++','#659ad2'], cxx:['C++','#659ad2'], hpp:['H++','#b99ae6'], cs:['C#','#9b6fd6'], java:['JV','#e76f51'], kt:['KT','#a97bff'], swift:['SW','#f05138'],
+  rb:['RB','#e5484d'], php:['PHP','#8892bf'], lua:['LUA','#51a0cf'], dart:['DRT','#40c4ff'], zig:['ZIG','#f7a41d'], nix:['NIX','#7ebae4'], sh:['$_','#8fbf7a'], bash:['$_','#8fbf7a'], zsh:['$_','#8fbf7a'], fish:['$_','#8fbf7a'],
+  html:['<>','#e8743b'], htm:['<>','#e8743b'], vue:['VUE','#41b883'], svelte:['SV','#ff6a3d'], css:['#','#6fa0e6'], scss:['#','#cd6799'], json:['{}','#e3b867'], jsonc:['{}','#e3b867'], yaml:['YML','#d0838c'], yml:['YML','#d0838c'],
+  toml:['TML','#a89584'], ini:['INI','#a89584'], conf:['CFG','#a89584'], cfg:['CFG','#a89584'], md:['MD','#6cc4c9'], txt:['TXT','#8e8e99'], log:['LOG','#8e8e99'], sql:['SQL','#e3b867'], xml:['XML','#e8743b'], svg:['SVG','#e3b867'],
+  png:['IMG','#b99ae6'], jpg:['IMG','#b99ae6'], jpeg:['IMG','#b99ae6'], gif:['IMG','#b99ae6'], webp:['IMG','#b99ae6'], ico:['IMG','#b99ae6'], lock:['LCK','#8e8e99'],
+  dockerfile:['DKR','#2496ed'], makefile:['MK','#e8743b'], env:['ENV','#e3b867'], gitignore:['GIT','#e8743b'], license:['LIC','#e3b867'] };
+function fileIcon(name) {
+  const lower = name.toLowerCase();
+  const key = FT[lower] ? lower : lower.startsWith('.') && FT[lower.slice(1)] ? lower.slice(1) : extOf(lower);
+  const [l, c] = FT[key] || ['•', 'var(--fg3)'];
+  return `<span class="fi" style="color:${c}">${esc(l)}</span>`;
+}
+const folderIcon = open => `<span class="fi folder">${icon(open ? 'folderOpen' : 'folder')}</span>`;
+
+function renderTabs() {
+  const bar = $('#tabbar');
+  const names = {};
+  for (const t of tabs.values()) names[t.name] = (names[t.name] || 0) + 1;
+  bar.replaceChildren(...[...tabs.values()].map(t => {
+    const el = h('div', { class: 'tab' + (t.path === active ? ' active' : '') + (isDirty(t) ? ' dirty' : ''), title: tilde(t.path), 'data-path': t.path,
+      onclick: () => activate(t.path), onauxclick: e => { if (e.button === 1) closeTab(t.path); },
+      oncontextmenu: e => { e.preventDefault(); tabMenu(e, t); } });
+    el.innerHTML = fileIcon(t.name) + `<span class="tname">${esc(t.name)}</span>` + (names[t.name] > 1 ? `<span class="tdir">${esc(basename(dirname(t.path)))}</span>` : '');
+    el.append(h('span', { class: 'tclose', html: `<span class="dirty"></span>${icon('x')}`, onclick: e => { e.stopPropagation(); closeTab(t.path); } }));
+    return el;
+  }));
+  $('.tab.active', bar)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+function renderTabsDirty(t) { const el = $(`.tab[data-path="${CSS.escape(t.path)}"]`); if (el) el.classList.toggle('dirty', isDirty(t)); }
+
+function tabMenu(e, t) {
+  showMenu(e.clientX, e.clientY, [
+    { label: 'Close', kbd: 'Ctrl+W', run: () => closeTab(t.path) },
+    { label: 'Close Others', run: async () => { for (const p of [...tabs.keys()]) if (p !== t.path) await closeTab(p); } },
+    { label: 'Close All', run: () => runCommand('file.closeAll') },
+    '-',
+    { label: 'Copy Path', run: () => copyText(t.path) },
+    { label: 'Reveal in Explorer', run: () => { showView('explorer', true); revealInTree(t.path); } },
+    { label: 'Open Containing Folder in Terminal', run: () => runInTerminal(`cd ${shq(dirname(t.path))}`) },
+  ]);
+}
+
+function renderCrumbs() {
+  const c = $('#crumbs');
+  const t = tabs.get(active);
+  if (!t) { c.replaceChildren(); return; }
+  const shown = t.path.startsWith(S.cwd + '/') ? [basename(S.cwd), ...rel(t.path).split('/')] : tilde(t.path).split('/').filter(Boolean);
+  c.innerHTML = shown.map((s, i) => (i ? icon('chev') : '') + `<span class="crumb">${esc(s)}</span>`).join('');
+}
+
+function renderWelcome() {
+  const kb = (label, keys, ic, cmd) => h('div', { class: 'wl-item', onclick: () => runCommand(cmd), html: `${icon(ic)}<span>${esc(label)}</span>${keys ? `<kbd>${keys}</kbd>` : ''}` });
+  const recent = (S.recentFiles || []).slice(0, 8);
+  $('#welcome').replaceChildren(h('div', { class: 'wl' },
+    h('div', { class: 'wl-head', html: LOGO + `<div><div class="wl-title">ocode</div><div class="wl-sub">Local AI code editor · ${esc(tilde(S.cwd))}</div></div>` }),
+    h('div', { class: 'wl-cols' },
+      h('div', {}, h('h3', {}, 'Start'),
+        kb('New File…', 'Ctrl+N', 'filePlus', 'file.new'),
+        kb('Go to File…', 'Ctrl+P', 'search', 'quickOpen'),
+        kb('Open Folder…', 'Ctrl+O', 'folder', 'file.openFolder'),
+        kb('Ask ocode', 'Ctrl+L', 'chat', 'ai.askSelection'),
+        kb('Command Palette', 'Ctrl+Shift+P', 'command', 'palette'),
+        kb('Color Theme', '', 'sparkle', 'pref.theme'),
+        kb('Settings', 'Ctrl+,', 'sliders', 'view.settings')),
+      h('div', {}, h('h3', {}, 'Recent'),
+        recent.length ? recent.map(p => h('div', { class: 'wl-item', title: p, onclick: () => openFile(p), html: `${fileIcon(basename(p))}<span>${esc(basename(p))}</span><small>${esc(tilde(dirname(p)))}</small>` }))
+          : h('div', { class: 'wl-empty' }, 'Files you open show up here.')))));
+}
+
+// ── Explorer ──────────────────────────────────────────────────────────────────
+const expanded = new Set();
+let git = {}, gitDirs = new Map();
+const gitCode = st => ({ M: 'M', A: 'A', '?': 'U', D: 'D', R: 'R' }[st] || 'M');
+
+let treeToken = 0;
+async function refreshTree() {
+  const root = $('#tree'), tok = ++treeToken;
+  const scroll = root.parentElement.scrollTop;
+  const frag = h('div');
+  await buildTree(frag, S.cwd, 0);
+  if (tok !== treeToken) return;
+  root.replaceChildren(...frag.childNodes);
+  root.parentElement.scrollTop = scroll;
+  markTreeActive();
+}
+const refreshTreeSoon = debounce(() => { refreshTree(); refreshGit(); }, 250);
+
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+const SORTS = {
+  name: ['Name', (a, b) => collator.compare(a.name, b.name)],
+  type: ['Type', (a, b) => collator.compare(extOf(a.name), extOf(b.name)) || collator.compare(a.name, b.name)],
+  modified: ['Date Modified (newest first)', (a, b) => (b.mtime || 0) - (a.mtime || 0) || collator.compare(a.name, b.name)],
+  size: ['Size (largest first)', (a, b) => (b.size || 0) - (a.size || 0) || collator.compare(a.name, b.name)],
+};
+function sortEntries(entries) {
+  const cmp = (SORTS[S.sortOrder] || SORTS.name)[1];
+  return entries.slice().sort((a, b) => (S.foldersFirst !== false && a.is_dir !== b.is_dir ? (a.is_dir ? -1 : 1) : 0) || cmp(a, b));
+}
+function sortMenu(e) {
+  const r = e.currentTarget.getBoundingClientRect();
+  showMenu(r.left, r.bottom + 4, [
+    ...Object.entries(SORTS).map(([k, [label]]) => ({ label: `Sort by ${label}`, checked: (S.sortOrder || 'name') === k, run: () => setSettings({ sortOrder: k }) })),
+    '-',
+    { label: 'Folders First', checked: S.foldersFirst !== false, run: () => setSettings({ foldersFirst: S.foldersFirst === false }) },
+    { label: 'Show Hidden Files', checked: !!S.showHidden, run: () => setSettings({ showHidden: !S.showHidden }) },
+  ]);
+}
+
+async function buildTree(container, dir, depth) {
+  let entries;
+  try { entries = sortEntries(await api(`/api/files?path=${enc(dir)}&hidden=${S.showHidden ? 1 : 0}`)); }
+  catch (e) { container.append(h('div', { class: 'tree-msg', style: `padding-left:${16 + depth * 12}px` }, e.message)); return; }
+  if (!entries.length && depth === 0) container.append(h('div', { class: 'tree-msg' }, 'This folder is empty.'));
+  for (const e of entries) {
+    container.append(treeRow(e, depth));
+    if (e.is_dir) {
+      const kids = h('div', { class: 'kids', 'data-for': e.path });
+      container.append(kids);
+      if (expanded.has(e.path)) { const frag = h('div'); await buildTree(frag, e.path, depth + 1); kids.replaceChildren(...frag.childNodes); }
+    }
+  }
+}
+
+function treeRow(e, depth) {
+  const open = e.is_dir && expanded.has(e.path);
+  const row = h('div', { class: 'row' + (e.is_dir ? ' dir' : ''), 'data-path': e.path, title: tilde(e.path), style: `padding-left:${6 + depth * 12}px` });
+  row.innerHTML = (e.is_dir ? `<span class="chev${open ? ' open' : ''}">${icon('chev')}</span>${folderIcon(open)}` : `<span class="chev"></span>${fileIcon(e.name)}`) + `<span class="name">${esc(e.name)}</span><span class="gbadge"></span>`;
+  row._entry = e; row._depth = depth;
+  decorateRow(row);
+  row.onclick = () => e.is_dir ? toggleDir(row) : openFile(e.path);
+  row.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); treeMenu(ev, e, row); };
+  return row;
+}
+
+function decorateRow(row) {
+  const p = row.dataset.path, st = row._entry?.is_dir ? gitDirs.get(p) : git.files?.[p];
+  row.className = row.className.replace(/\s?g-\w/g, '');
+  const badge = $('.gbadge', row);
+  if (st) { const c = gitCode(st); row.classList.add('g-' + c); badge.textContent = row._entry.is_dir ? '•' : c; }
+  else badge.textContent = '';
+}
+function decorateTree() { $$('#tree .row').forEach(decorateRow); }
+
+async function toggleDir(row, forceOpen) {
+  const p = row.dataset.path, kids = row.nextElementSibling;
+  const open = forceOpen ?? !expanded.has(p);
+  if (open === expanded.has(p) && kids?.childNodes.length) return;
+  if (open) {
+    expanded.add(p);
+    const frag = h('div');
+    await buildTree(frag, p, row._depth + 1);
+    if (expanded.has(p)) kids.replaceChildren(...frag.childNodes);
+  } else { expanded.delete(p); kids.replaceChildren(); }
+  $('.chev', row).classList.toggle('open', open);
+  $('.fi', row).outerHTML = folderIcon(open);
+  markTreeActive();
+}
+
+function markTreeActive() {
+  $$('#tree .row.active').forEach(r => r.classList.remove('active'));
+  if (active) $(`#tree .row[data-path="${CSS.escape(active)}"]`)?.classList.add('active');
+}
+
+async function revealInTree(path) {
+  if (!path.startsWith(S.cwd + '/')) return;
+  let d = dirname(path); const chain = [];
+  while (d.length > S.cwd.length) { chain.unshift(d); d = dirname(d); }
+  for (const dir of chain) { const row = $(`#tree .row[data-path="${CSS.escape(dir)}"]`); if (row) await toggleDir(row, true); }
+  const row = $(`#tree .row[data-path="${CSS.escape(path)}"]`);
+  if (row) { markTreeActive(); row.scrollIntoView({ block: 'nearest' }); }
+}
+
+function treeMenu(ev, e, row) {
+  row?.classList.add('ctx');
+  const dir = e ? (e.is_dir ? e.path : dirname(e.path)) : S.cwd;
+  const items = [];
+  if (!e || e.is_dir) items.push({ label: 'New File…', run: () => newFile(dir) }, { label: 'New Folder…', run: () => newFolder(dir) }, '-');
+  if (e && !e.is_dir) {
+    items.push({ label: 'Open', run: () => openFile(e.path) });
+    if (runnerFor(e.path)) items.push({ label: 'Run File', kbd: 'F5', run: () => runFile(e.path) });
+    items.push({ label: 'Ask ocode About This File', run: () => { setPanel('chat', true); insertIntoChat(`@${rel(e.path)} `); } }, '-');
+  }
+  if (e && e.is_dir) items.push({ label: 'Open as Workspace Folder', run: () => setCwd(e.path) });
+  items.push({ label: 'Open in Terminal', run: () => runInTerminal(`cd ${shq(dir)}`) });
+  const target = e || { name: basename(S.cwd), path: S.cwd, is_dir: true };
+  const extra = explorerActions.filter(a => { try { return !a.when || a.when(target); } catch { return false; } });
+  if (extra.length) items.push('-', ...extra.map(a => ({ label: a.label, run: () => Promise.resolve(a.run(target)).catch(err => toast(err.message, 'error')) })));
+  if (e) items.push('-', { label: 'Rename…', kbd: 'F2', run: () => renamePath(e.path) }, { label: 'Copy Path', run: () => copyText(e.path) }, { label: 'Copy Relative Path', run: () => copyText(rel(e.path)) }, '-', { label: 'Move to Trash', danger: true, run: () => trashPath(e.path) });
+  else items.push('-', { label: 'Refresh', run: refreshTreeSoon }, { label: S.showHidden ? 'Hide Hidden Files' : 'Show Hidden Files', run: () => setSettings({ showHidden: !S.showHidden }) });
+  showMenu(ev.clientX, ev.clientY, items, () => row?.classList.remove('ctx'));
+}
+
+async function newFile(dir = S.cwd) {
+  const name = await askInput(`New file in ${tilde(dir)}`, '', 'File name — use a/b.txt to create folders too');
+  if (!name) return;
+  const p = name.startsWith('/') || name.startsWith('~') ? untilde(name) : join(dir, name);
+  try { await post('/api/fs', { op: 'newfile', path: p }); } catch (e) { toast(e.message, 'error'); return; }
+  invalidateFileIndex(); await refreshTree(); await openFile(p);
+}
+async function newFolder(dir = S.cwd) {
+  const name = await askInput(`New folder in ${tilde(dir)}`, '');
+  if (!name) return;
+  const p = join(dir, name);
+  try { await post('/api/fs', { op: 'mkdir', path: p }); } catch (e) { toast(e.message, 'error'); return; }
+  expanded.add(p); refreshTree();
+}
+async function renamePath(p) {
+  const name = await askInput(`Rename ${basename(p)}`, basename(p));
+  if (!name || name === basename(p)) return;
+  const to = join(dirname(p), name);
+  try { await post('/api/fs', { op: 'rename', path: p, to }); } catch (e) { toast(e.message, 'error'); return; }
+  for (const [path, t] of [...tabs]) {
+    if (path !== p && !path.startsWith(p + '/')) continue;
+    const newPath = to + path.slice(p.length), wasActive = active === path, dirty = isDirty(t), text = t.kind === 'text' ? t.model.getValue() : null;
+    await closeTab(path, true);
+    const nt = await openFile(newPath, { silent: true, noFocus: !wasActive });
+    if (nt && dirty) nt.model.setValue(text);
+  }
+  invalidateFileIndex(); refreshTreeSoon();
+}
+async function trashPath(p) {
+  if (!await askConfirm(`Move "${basename(p)}" to Trash?`, 'Move to Trash')) return;
+  try { await post('/api/fs', { op: 'trash', path: p }); } catch (e) { toast(e.message, 'error'); return; }
+  for (const path of [...tabs.keys()]) if (path === p || path.startsWith(p + '/')) await closeTab(path, true);
+  invalidateFileIndex(); refreshTreeSoon(); toast(`Moved ${basename(p)} to Trash`, 'ok');
+}
+
+async function setCwd(p, opts = {}) {
+  p = absPath(p).replace(/(.)\/+$/, '$1');
+  try { await api('/api/files?path=' + enc(p)); } catch (e) { toast(`Can't open folder: ${e.message}`, 'error'); return; }
+  S.cwd = p;
+  if (!opts.noSave) setSettings({ cwd: p });
+  post('/api/cwd', { cwd: p }).catch(() => {});
+  expanded.clear(); invalidateFileIndex();
+  $('#explorer-title').textContent = basename(p);
+  $('#explorer-title').title = p;
+  renderChrome();
+  await refreshTree();
+  refreshGit();
+  if (!active) renderWelcome();
+  document.title = `ocode — ${basename(p)}`;
+  emit('cwdChange', p);
+}
+
+async function refreshGit() {
+  try { git = await api('/api/git?path=' + enc(S.cwd)); } catch { git = {}; }
+  gitDirs = new Map();
+  for (const [f, st] of Object.entries(git.files || {})) {
+    let d = dirname(f);
+    while (git.root && d.length >= git.root.length && !gitDirs.has(d)) { gitDirs.set(d, st); if (d === '/') break; d = dirname(d); }
+  }
+  decorateTree(); renderStatus();
+}
+const refreshGitSoon = debounce(refreshGit, 600);
+
+// ── Search view ───────────────────────────────────────────────────────────────
+const search = { token: 0, regex: false, case: false };
+const utf8 = new TextEncoder(), utf8d = new TextDecoder();
+const runSearch = debounce(async () => {
+  const q = $('#search-input').value, out = $('#search-results'), sum = $('#search-summary');
+  const tok = ++search.token;
+  if (!q) { out.replaceChildren(); sum.textContent = ''; return; }
+  sum.textContent = 'Searching…';
+  let res;
+  try { res = await api(`/api/search?q=${enc(q)}&path=${enc(S.cwd)}&regex=${search.regex ? 1 : 0}&case=${search.case ? 1 : 0}`); }
+  catch (e) { if (tok === search.token) sum.textContent = e.message; return; }
+  if (tok !== search.token) return;
+  const groups = new Map();
+  for (const r of res) { if (!groups.has(r.path)) groups.set(r.path, []); groups.get(r.path).push(r); }
+  sum.textContent = res.length ? `${res.length}${res.length >= 1000 ? '+' : ''} results in ${groups.size} files` : 'No results';
+  out.replaceChildren(...[...groups].map(([path, rows]) => {
+    const g = h('div', { class: 'sr-group' });
+    const head = h('div', { class: 'sr-file', title: path, onclick: () => g.classList.toggle('closed'),
+      html: `<span class="chev open">${icon('chev')}</span>${fileIcon(basename(path))}<span>${esc(basename(path))}</span><span class="sdir">${esc(dirname(path) === S.cwd ? '' : rel(dirname(path)))}</span><span class="sr-count">${rows.length}</span>` });
+    g.append(head);
+    for (const r of rows) {
+      const b = utf8.encode(r.text);
+      const before = utf8d.decode(b.slice(0, r.start)), match = utf8d.decode(b.slice(r.start, r.end)), after = utf8d.decode(b.slice(r.end));
+      const lead = before.trimStart(), shown = lead.length > 40 ? '…' + lead.slice(-40) : lead;
+      g.append(h('div', { class: 'sr-line', title: r.text.trim(), html: `${esc(shown)}<mark>${esc(match)}</mark>${esc(after.slice(0, 200))}`,
+        onclick: () => openFile(path, { line: r.line, col: before.length, endCol: before.length + match.length }) }));
+    }
+    return g;
+  }));
+}, 280);
+
+// ── Quick open / pickers ──────────────────────────────────────────────────────
+const QO = { open: false, opts: null, items: [], sel: 0, token: 0, first: true, resolve: null, prevFocus: null };
+function quick(opts) {
+  if (QO.open) closeQuick(null);
+  return new Promise(resolve => {
+    Object.assign(QO, { open: true, opts, items: [], sel: 0, first: true, resolve, prevFocus: document.activeElement });
+    $('#quick-back').classList.add('open');
+    $('#quick-title').textContent = opts.title || '';
+    const inp = $('#quick-input');
+    inp.value = opts.value || ''; inp.placeholder = opts.placeholder || '';
+    inp.focus();
+    if (opts.selectValue) inp.select();
+    updateQuick();
+  });
+}
+async function updateQuick() {
+  const tok = ++QO.token, q = $('#quick-input').value;
+  const items = await QO.opts.getItems(q);
+  if (tok !== QO.token || !QO.open) return;
+  QO.items = (items || []).slice(0, 100);
+  QO.sel = QO.first && QO.opts.initialSel >= 0 ? QO.opts.initialSel : 0;
+  QO.first = false;
+  renderQuick();
+}
+function renderQuick() {
+  const list = $('#quick-list');
+  list.replaceChildren(...QO.items.map((it, i) => it.sep ? h('div', { class: 'q-sep' }, it.sep) :
+    h('div', { class: 'qi' + (i === QO.sel ? ' sel' : ''), onmousedown: e => { e.preventDefault(); QO.sel = i; acceptQuick(); }, onmousemove: () => { if (QO.sel !== i) { QO.sel = i; renderQuickSel(); } },
+      html: `${it.icon || ''}<span class="ql">${it.labelHtml || esc(it.label)}</span><span class="qd">${esc(it.detail || '')}</span>${it.kbd ? `<kbd>${esc(it.kbd)}</kbd>` : ''}` })));
+  renderQuickSel();
+}
+function renderQuickSel() {
+  $$('#quick-list .qi').forEach((el, i) => el.classList.toggle('sel', i === QO.sel));
+  $('#quick-list .qi.sel')?.scrollIntoView({ block: 'nearest' });
+  const it = QO.items[QO.sel];
+  if (it && !it.sep && QO.opts.onPreview) QO.opts.onPreview(it);
+}
+function moveQuick(d) {
+  if (!QO.items.length) return;
+  let i = QO.sel;
+  do { i = (i + d + QO.items.length) % QO.items.length; } while (QO.items[i].sep && i !== QO.sel);
+  QO.sel = i; renderQuickSel();
+}
+function acceptQuick() {
+  const item = QO.items[QO.sel], q = $('#quick-input').value;
+  if (item?.sep) return;
+  if (QO.opts.onAccept && QO.opts.onAccept(item, q) === false) return;
+  closeQuick({ item, query: q });
+}
+function closeQuick(result) {
+  if (!QO.open) return;
+  QO.open = false;
+  $('#quick-back').classList.remove('open');
+  if (!result && QO.opts.onCancel) QO.opts.onCancel();
+  const r = QO.resolve; QO.resolve = null;
+  if (QO.prevFocus && document.contains(QO.prevFocus)) QO.prevFocus.focus();
+  r(result);
+}
+function setQuickValue(v) { const i = $('#quick-input'); i.value = v; i.focus(); updateQuick(); }
+
+function fuzzy(q, s) {
+  if (!q) return { score: 0, idx: [] };
+  const ql = q.toLowerCase(), sl = s.toLowerCase(), idx = [];
+  let qi = 0, score = 0, last = -2;
+  for (let i = 0; i < sl.length && qi < ql.length; i++) {
+    if (sl[i] !== ql[qi]) continue;
+    score += i === last + 1 ? 6 : 1;
+    if (i === 0 || '/._- '.includes(s[i - 1]) || (s[i] >= 'A' && s[i] <= 'Z' && s[i - 1] >= 'a')) score += 5;
+    idx.push(i); last = i; qi++;
+  }
+  return qi === ql.length ? { score: score - s.length * 0.02, idx } : null;
+}
+function hl(s, idx) { const set = new Set(idx); let out = ''; for (let i = 0; i < s.length; i++) out += set.has(i) ? `<b>${esc(s[i])}</b>` : esc(s[i]); return out; }
+function fuzzyItems(items, q) {
+  if (!q) return items;
+  const out = [];
+  for (const it of items) { const m = fuzzy(q, it.label); if (m) out.push({ ...it, labelHtml: hl(it.label, m.idx), _s: m.score }); }
+  return out.sort((a, b) => b._s - a._s);
+}
+
+async function askInput(title, value = '', hint = 'Press Enter to confirm or Escape to cancel') {
+  const r = await quick({ title, value, selectValue: true, placeholder: title, getItems: () => [{ label: hint, icon: icon('chev') }] });
+  const v = r?.query?.trim();
+  return v || null;
+}
+async function askPick(title, items) {
+  const norm = items.map(it => typeof it === 'string' ? { label: it, value: it } : { ...it, value: it.value ?? it.label });
+  const r = await quick({ title, placeholder: title, getItems: q => fuzzyItems(norm, q) });
+  return r?.item ? r.item.value : null;
+}
+async function askConfirm(message, okLabel = 'OK') {
+  return (await askPick(message, [{ label: okLabel, value: true }, { label: 'Cancel', value: false }])) === true;
+}
+
+let fileIndex = { root: null, files: [], time: 0 };
+async function getFileIndex() {
+  if (fileIndex.root !== S.cwd || Date.now() - fileIndex.time > 30000) {
+    const d = await api('/api/find-files?path=' + enc(S.cwd));
+    fileIndex = { root: d.root, files: d.files, time: Date.now() };
+  }
+  return fileIndex;
+}
+function invalidateFileIndex() { fileIndex.time = 0; }
+
+async function fileItems(q) {
+  const { root, files } = await getFileIndex();
+  q = q.replace(/\s+/g, '');
+  const mk = (relp, labelHtml, score) => ({ label: basename(relp), labelHtml, detail: dirname(relp) === '/' || !relp.includes('/') ? '' : dirname(relp), icon: fileIcon(basename(relp)), path: join(root, relp), _s: score });
+  if (!q) {
+    const recent = (S.recentFiles || []).filter(p => p.startsWith(root + '/')).slice(0, 10).map(p => ({ ...mk(p.slice(root.length + 1)), detail: rel(dirname(p)) + ' · recent', path: p }));
+    const seen = new Set(recent.map(r => r.path));
+    return [...recent, ...files.filter(f => !seen.has(join(root, f))).slice(0, 60).map(f => mk(f))];
+  }
+  const out = [];
+  for (const f of files) {
+    const base = basename(f), mb = fuzzy(q, base);
+    if (mb) { out.push(mk(f, hl(base, mb.idx), mb.score * 3 + 40)); continue; }
+    const mf = fuzzy(q, f);
+    if (mf) out.push(mk(f, esc(base), mf.score));
+  }
+  return out.sort((a, b) => b._s - a._s).slice(0, 80);
+}
+
+async function quickOpen(prefix = '') {
+  const r = await quick({ value: prefix, placeholder: 'Search files by name   ·   > run a command   ·   : go to line', getItems: async q => {
+    if (q.startsWith('>')) return commandItems(q.slice(1).trim());
+    if (q.startsWith(':')) { const n = parseInt(q.slice(1)); return [{ label: isNaN(n) ? 'Type a line number to go to' : `Go to line ${n}`, line: n, icon: icon('chev') }]; }
+    try { return await fileItems(q); } catch (e) { return [{ label: e.message }]; }
+  } });
+  if (!r?.item) return;
+  if (r.item.cmd) runCommand(r.item.cmd);
+  else if (r.item.line && !isNaN(r.item.line) && editor.getModel()) { editor.revealLineInCenter(r.item.line); editor.setPosition({ lineNumber: r.item.line, column: 1 }); editor.focus(); }
+  else if (r.item.path) openFile(r.item.path);
+}
+
+async function pickFolder(start = S.cwd) {
+  const r = await quick({ title: 'Open Folder', placeholder: 'Folder path — Tab to complete', value: tilde(start).replace(/\/?$/, '/'),
+    getItems: async q => {
+      const full = untilde(q || '/'), dir = full.endsWith('/') ? full : dirname(full), prefix = full.endsWith('/') ? '' : basename(full);
+      let ents = [];
+      try { ents = (await api(`/api/files?path=${enc(dir)}&hidden=${prefix.startsWith('.') ? 1 : 0}`)).filter(e => e.is_dir); } catch {}
+      const target = full.replace(/(.)\/+$/, '$1') || '/';
+      return [{ label: `Open ${tilde(target)}`, open: target, icon: icon('check') },
+        ...ents.filter(e => e.name.toLowerCase().startsWith(prefix.toLowerCase())).map(e => ({ label: e.name, detail: tilde(e.path), icon: folderIcon(false), dir: e.path }))];
+    },
+    onAccept: item => { if (item?.dir) { setQuickValue(tilde(item.dir) + '/'); return false; } },
+  });
+  return r?.item?.open || null;
+}
+
+async function pickTheme() {
+  const orig = S.theme;
+  const items = Object.entries(THEMES).map(([id, t]) => ({ label: t.label, detail: t.type, value: id }));
+  const r = await quick({ title: 'Color Theme', placeholder: 'Select a color theme (↑↓ to preview)', initialSel: Math.max(0, items.findIndex(i => i.value === orig)),
+    getItems: q => fuzzyItems(items, q), onPreview: it => applyTheme(it.value), onCancel: () => applyTheme(orig) });
+  if (r?.item) setSettings({ theme: r.item.value }); else applyTheme(orig);
+}
+
+// ── Commands & keybindings ────────────────────────────────────────────────────
+const commands = new Map(), keymap = new Map(), cmdUsage = new Map();
+function normKeys(str) {
+  const parts = str.split('+').map(s => s.trim());
+  let key = parts.pop() || '+';
+  const mods = new Set(parts.map(p => p.toLowerCase()));
+  const out = [];
+  if (mods.has('ctrl') || mods.has('cmd') || mods.has('meta')) out.push('Ctrl');
+  if (mods.has('shift')) out.push('Shift');
+  if (mods.has('alt')) out.push('Alt');
+  out.push(key.length === 1 ? key.toUpperCase() : key);
+  return out.join('+');
+}
+function eventKeys(e) {
+  if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return null;
+  const out = [];
+  if (e.ctrlKey || e.metaKey) out.push('Ctrl');
+  if (e.shiftKey) out.push('Shift');
+  if (e.altKey) out.push('Alt');
+  const codes = { Backquote: '`', Equal: '=', Minus: '-', Comma: ',', Period: '.', Slash: '/', Backslash: '\\', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'" };
+  let k = codes[e.code] || (/^Key[A-Z]$/.test(e.code) ? e.code.slice(3) : /^Digit\d$/.test(e.code) ? e.code.slice(5) : e.key);
+  if (k === ' ') k = 'Space';
+  out.push(k.length === 1 ? k.toUpperCase() : k);
+  return out.join('+');
+}
+function registerCommand(c) {
+  if (!c.id || typeof c.run !== 'function') throw new Error('registerCommand needs {id, label, run}');
+  const cmd = { label: c.id, source: 'core', ...c };
+  if (cmd.keys) { cmd.keys = normKeys(cmd.keys); keymap.set(cmd.keys, cmd); }
+  commands.set(cmd.id, cmd);
+  return () => { commands.delete(cmd.id); if (cmd.keys && keymap.get(cmd.keys) === cmd) keymap.delete(cmd.keys); };
+}
+async function runCommand(id, ...args) {
+  const c = commands.get(id);
+  if (!c) { toast(`Unknown command: ${id}`, 'error'); return; }
+  cmdUsage.set(id, Date.now());
+  try { return await c.run(...args); } catch (e) { console.error(e); toast(`${c.label}: ${e.message}`, 'error'); }
+}
+function commandItems(q) {
+  const all = [...commands.values()].filter(c => !c.hidden).map(c => ({ label: c.label, kbd: c.keys, cmd: c.id, detail: c.source !== 'core' ? c.source : '', _u: cmdUsage.get(c.id) || 0 }));
+  if (!q) return all.sort((a, b) => (b._u - a._u) || a.label.localeCompare(b.label));
+  return fuzzyItems(all, q);
+}
+const palette = () => quickOpen('>');
+
+window.addEventListener('keydown', e => {
+  if (QO.open || reviewOpen) return;
+  const combo = eventKeys(e);
+  const c = combo && keymap.get(combo);
+  if (!c) return;
+  if (e.target.closest?.('#xterm') && !c.global) return;
+  if (c.when && !c.when()) return;
+  e.preventDefault(); e.stopPropagation();
+  runCommand(c.id);
+}, true);
+
+$('#quick-input').addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); moveQuick(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); moveQuick(-1); }
+  else if (e.key === 'PageDown') { e.preventDefault(); for (let i = 0; i < 10; i++) moveQuick(1); }
+  else if (e.key === 'PageUp') { e.preventDefault(); for (let i = 0; i < 10; i++) moveQuick(-1); }
+  else if (e.key === 'Enter') { e.preventDefault(); acceptQuick(); }
+  else if (e.key === 'Escape') { e.preventDefault(); closeQuick(null); }
+  else if (e.key === 'Tab') { e.preventDefault(); const it = QO.items[QO.sel]; if (it?.dir) setQuickValue(tilde(it.dir) + '/'); else moveQuick(e.shiftKey ? -1 : 1); }
+});
+$('#quick-input').addEventListener('input', updateQuick);
+$('#quick-back').addEventListener('mousedown', e => { if (e.target.id === 'quick-back') closeQuick(null); });
+
+// ── Context menu ──────────────────────────────────────────────────────────────
+let menuOnClose = null;
+function showMenu(x, y, items, onClose) {
+  hideMenu();
+  const m = $('#ctxmenu');
+  const checks = items.some(it => it !== '-' && 'checked' in it);
+  m.replaceChildren(...items.map(it => it === '-' ? h('div', { class: 'msep' }) :
+    h('div', { class: 'mi' + (it.danger ? ' danger' : ''), onclick: () => { hideMenu(); it.run(); } },
+      checks ? h('span', { class: 'mcheck' }, it.checked ? '✓' : '') : null, h('span', {}, it.label), it.kbd ? h('kbd', {}, it.kbd) : null)));
+  m.style.display = 'block';
+  m.style.left = Math.min(x, innerWidth - m.offsetWidth - 6) + 'px';
+  m.style.top = Math.min(y, innerHeight - m.offsetHeight - 6) + 'px';
+  menuOnClose = onClose;
+}
+function hideMenu() { $('#ctxmenu').style.display = 'none'; if (menuOnClose) { const f = menuOnClose; menuOnClose = null; f(); } }
+document.addEventListener('mousedown', e => { if (!e.target.closest('#ctxmenu')) hideMenu(); });
+window.addEventListener('blur', hideMenu);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideMenu(); });
+const copyText = t => navigator.clipboard.writeText(t).then(() => toast('Copied to clipboard', 'ok', 1500), () => toast('Clipboard unavailable', 'error'));
+
+// ── Terminal ──────────────────────────────────────────────────────────────────
+let term = null, fit = null, ws = null, termDead = false, termQueue = [];
+const wsSend = m => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
+async function initTerm() {
+  try { await document.fonts.load(`${S.terminalFontSize}px ${S.fontFamily.split(',')[0]}`); } catch {}
+  term = new Terminal({ fontFamily: S.fontFamily, fontSize: S.terminalFontSize, lineHeight: 1.25, cursorBlink: true, cursorStyle: 'bar', scrollback: 10000,
+    theme: xtermTheme(THEMES[S.theme] || THEMES.ocode), allowProposedApi: true, macOptionIsMeta: true });
+  fit = new FitAddon.FitAddon();
+  term.loadAddon(fit);
+  term.open($('#xterm'));
+  term.onData(d => { if (termDead) { termDead = false; connectTerm(); return; } wsSend({ type: 'input', data: d }); });
+  term.onResize(({ cols, rows }) => wsSend({ type: 'resize', cols, rows }));
+  term.attachCustomKeyEventHandler(e => {
+    if (e.type === 'keydown' && e.ctrlKey && e.shiftKey && e.code === 'KeyC') { const s = term.getSelection(); if (s) copyText(s); return false; }
+    if (e.type === 'keydown' && e.ctrlKey && e.shiftKey && e.code === 'KeyV') { navigator.clipboard.readText().then(t => wsSend({ type: 'input', data: t })); return false; }
+    return true;
+  });
+  new ResizeObserver(() => fitTerm()).observe($('#xterm'));
+  connectTerm();
+}
+function connectTerm() {
+  if (ws) { ws.onclose = null; ws.close(); }
+  ws = new WebSocket(`ws://${location.host}/ws/terminal?cwd=${enc(S.cwd)}`);
+  $('#term-sub').textContent = tilde(S.cwd);
+  ws.onopen = () => { fitTerm(); wsSend({ type: 'resize', cols: term.cols, rows: term.rows }); for (const c of termQueue.splice(0)) wsSend({ type: 'input', data: c }); };
+  ws.onmessage = e => term.write(e.data);
+  ws.onclose = () => { termDead = true; term.write('\r\n\x1b[2m[shell exited — press any key to restart]\x1b[0m\r\n'); };
+}
+function fitTerm() { if (!term || $('#term-panel').style.display === 'none') return; try { fit.fit(); } catch {} }
+function runInTerminal(cmd) {
+  setPanel('term', true);
+  const data = cmd + '\r';
+  if (termDead) { termDead = false; connectTerm(); }
+  if (ws && ws.readyState === 1) wsSend({ type: 'input', data }); else termQueue.push(data);
+  term.focus();
+}
+
+const RUNNERS = { py: 'python3 {f}', js: 'node {f}', mjs: 'node {f}', cjs: 'node {f}', ts: 'npx --yes tsx {f}', sh: 'bash {f}', bash: 'bash {f}', zsh: 'zsh {f}', fish: 'fish {f}',
+  rb: 'ruby {f}', php: 'php {f}', lua: 'lua {f}', pl: 'perl {f}', go: 'go run {f}', java: 'java {f}', dart: 'dart run {f}',
+  c: 'gcc {f} -o /tmp/{n} && /tmp/{n}', cpp: 'g++ -std=c++20 {f} -o /tmp/{n} && /tmp/{n}', cc: 'g++ -std=c++20 {f} -o /tmp/{n} && /tmp/{n}', rs: 'rustc {f} -o /tmp/{n} && /tmp/{n}', zig: 'zig run {f}',
+  html: 'xdg-open {f}' };
+const runnerFor = p => RUNNERS[extOf(basename(p))];
+async function runFile(path = active) {
+  if (!path) { toast('Open a file to run it', 'warn'); return; }
+  const tpl = runnerFor(path);
+  if (!tpl) { toast(`No runner for .${extOf(path) || basename(path)} files — plugins can add one`, 'warn'); return; }
+  const t = tabs.get(path); if (isDirty(t)) await saveTab(t);
+  const n = basename(path).replace(/\.[^.]+$/, '').replace(/[^\w.-]/g, '_') || 'ocode-run';
+  runInTerminal(`cd ${shq(dirname(path))} && ${tpl.replaceAll('{f}', shq(path)).replaceAll('{n}', n)}`);
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+let chatMessages = [], busy = false, abortCtl = null;
+const SUGGESTIONS = [
+  { label: 'Explain the open file', prompt: () => active ? `Explain what ${rel(active)} does.` : 'Explain the structure of this project.' },
+  { label: 'Find & fix bugs', prompt: () => active ? `Review ${rel(active)} for bugs and fix any you find.` : 'Look through this project for bugs.' },
+  { label: 'Write tests', prompt: () => active ? `Write tests for ${rel(active)}.` : 'Add tests to this project.' },
+  { label: 'Start something new', prompt: () => 'Help me start a new project in this folder. Ask me what I want to build first.' },
+];
+
+function getSystemPrompt() {
+  const t = tabs.get(active);
+  let ctx = '';
+  if (t?.kind === 'text') {
+    ctx = `\nThe user has ${t.path} open in the editor (${t.model.getLanguageId()}).`;
+    const sel = editor.getSelection();
+    if (sel && !sel.isEmpty()) ctx += ` Lines ${sel.startLineNumber}-${sel.endLineNumber} are selected.`;
+  }
+  return `You are ocode, an expert AI coding assistant built into the user's code editor, with full file system access.\n` +
+    `Working directory: ${S.cwd}${ctx}\nEffort level: ${S.effort}. ${EFFORT_PROMPTS[S.effort] || ''}\n` +
+    `Tools: read_file, write_file, edit_file, list_files, run_command. Use them to do the work rather than describing it. ` +
+    `Always read a file before editing it and prefer edit_file for small changes. Reply in Markdown and put code in fenced blocks with a language tag.`;
+}
+
+function renderChatEmpty() {
+  $('#messages').replaceChildren(h('div', { class: 'chat-empty' },
+    h('div', { html: LOGO }), h('div', { class: 'ce-title' }, 'What are we building?'),
+    h('div', { class: 'ce-sub', html: `ocode can read, write and run anything in <code>${esc(tilde(S.cwd))}</code>.` }),
+    h('div', { class: 'ce-chips' }, ...SUGGESTIONS.map(s => h('button', { class: 'chip', onclick: () => sendChat(s.prompt()) }, s.label)))));
+}
+const scrollChat = () => { const m = $('#messages'); m.scrollTop = m.scrollHeight; };
+
+function langId(name) {
+  if (!name) return null;
+  const n = name.toLowerCase();
+  const l = monaco.languages.getLanguages().find(l => l.id === n || (l.aliases || []).some(a => a.toLowerCase() === n) || (l.extensions || []).includes('.' + n));
+  return l?.id || null;
+}
+const PATH_RE = /^(~|\.{0,2}\/)?[\w.@+-]+(\/[\w.@+-]+)*\.[A-Za-z0-9]{1,10}(:\d+)?$/;
+function renderMarkdown(text) {
+  const div = h('div', { class: 'md' });
+  div.innerHTML = DOMPurify.sanitize(marked.parse(text || '', { gfm: true, breaks: true }));
+  for (const code of $$('pre > code', div)) {
+    const lang = (code.className.match(/language-([\w+#.-]+)/) || [])[1] || '';
+    const src = code.textContent.replace(/\n$/, '');
+    const pre = code.parentElement;
+    const block = h('div', { class: 'codeblock' },
+      h('div', { class: 'cb-head' }, h('span', {}, lang || 'text'),
+        h('button', { title: 'Copy', html: icon('copy') + 'Copy', onclick: () => copyText(src) }),
+        h('button', { title: 'Insert at cursor', html: icon('insert') + 'Insert', onclick: () => insertAtCursor(src) })));
+    pre.replaceWith(block); block.append(pre);
+    const id = langId(lang);
+    if (id) monaco.editor.colorize(src, id, { tabSize: 4 }).then(html => { code.innerHTML = html; }).catch(() => {});
+  }
+  for (const code of $$(':not(pre) > code', div)) {
+    const t = code.textContent.trim();
+    if (PATH_RE.test(t) && (t.includes('/') || FT[extOf(t.replace(/:\d+$/, ''))])) code.classList.add('path-link');
+  }
+  return div;
+}
+function insertAtCursor(text) {
+  const t = tabs.get(active);
+  if (t?.kind !== 'text') { toast('Open a file to insert code into', 'warn'); return; }
+  editor.executeEdits('ocode', [{ range: editor.getSelection(), text, forceMoveMarkers: true }]);
+  editor.focus();
+}
+
+function appendUser(text) {
+  $('.chat-empty')?.remove();
+  const b = h('div', { class: 'bubble' }); b.append(renderMarkdown(text));
+  $('#messages').append(h('div', { class: 'm-user' }, b)); scrollChat();
+}
+function appendTurn() {
+  const body = h('div', { class: 'm-ai-body' }), dots = h('div', { class: 'dots', html: '<span></span><span></span><span></span>' });
+  $('#messages').append(h('div', { class: 'm-ai' }, h('div', { class: 'm-ai-head', html: LOGO + '<span>ocode</span>' }), body, dots));
+  scrollChat();
+  return { body, thinking: v => { dots.style.display = v ? 'flex' : 'none'; } };
+}
+function appendSystem(html) {
+  $('.chat-empty')?.remove();
+  $('#messages').append(h('div', { class: 'sys', html: `<span style="color:var(--accent)">◆</span><div>${html}</div>` }));
+  scrollChat();
+}
+
+const TOOL_META = { read_file: ['file', 'Read'], write_file: ['filePlus', 'Write'], create_file: ['filePlus', 'Write'], edit_file: ['edit', 'Edit'], list_files: ['folder', 'List'], run_command: ['terminal', 'Run'] };
+function appendTool(container, name, args) {
+  const [ic, verb] = TOOL_META[name] || ['zap', name];
+  const target = args.path || args.command || '';
+  const blk = h('div', { class: 'tool' });
+  const head = h('div', { class: 'tool-head', onclick: () => blk.classList.toggle('open'),
+    html: `${icon(ic)}<span class="tool-verb">${esc(verb)}</span><span class="tool-target">${esc(target)}</span><span class="tool-status running"></span>${icon('chev', 'tool-chev')}` });
+  if (args.path) { const tg = $('.tool-target', head); tg.classList.add('link'); tg.onclick = e => { e.stopPropagation(); openFile(absPath(args.path)); }; }
+  const body = h('div', { class: 'tool-body' });
+  if (name === 'edit_file') {
+    const pre = h('pre', { class: 'diff' });
+    for (const l of String(args.old_string ?? '').split('\n')) pre.append(h('div', { class: 'del' }, '- ' + l));
+    for (const l of String(args.new_string ?? '').split('\n')) pre.append(h('div', { class: 'add' }, '+ ' + l));
+    body.append(pre);
+  } else if (name === 'write_file' || name === 'create_file') body.append(h('pre', {}, String(args.content ?? '').slice(0, 5000)));
+  blk.append(head, body); blk._name = name; blk._args = args;
+  container.append(blk); scrollChat();
+  return blk;
+}
+function finishTool(blk, result) {
+  if (!blk) return;
+  const err = /^Error/.test(result), st = $('.tool-status', blk);
+  st.className = 'tool-status ' + (err ? 'err' : 'ok'); st.textContent = err ? 'failed' : '✓';
+  $('.tool-body', blk).append(h('pre', { class: 'tool-result' + (err ? ' err' : '') }, result.slice(0, 6000)));
+  if (err) blk.classList.add('open');
+  const a = blk._args;
+  if (!err && ['write_file', 'create_file', 'edit_file'].includes(blk._name) && a.path) {
+    const p = absPath(a.path);
+    invalidateFileIndex(); refreshTreeSoon();
+    reloadIfOpen(p).then(open => { if (!open) openFile(p, { noFocus: true, silent: true }); });
+  } else if (blk._name === 'run_command') { invalidateFileIndex(); refreshTreeSoon(); }
+}
+
+async function* sse(resp) {
+  const reader = resp.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf('\n\n')) >= 0) {
+      const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+      for (const line of chunk.split('\n')) if (line.startsWith('data: ')) yield JSON.parse(line.slice(6));
+    }
+  }
+}
+
+function setBusy(v) {
+  busy = v;
+  const b = $('#send-btn');
+  b.classList.toggle('busy', v);
+  b.innerHTML = v ? icon('stop', 'fill') : icon('up');
+  b.title = v ? 'Stop' : 'Send';
+}
+
+async function sendChat(text) {
+  text = String(text || '').trim();
+  if (!text || busy) return;
+  if (text.startsWith('/')) return dispatchSlash(text);
+  setPanel('chat', true);
+  chatMessages.push({ role: 'user', content: text });
+  appendUser(text);
+  setBusy(true);
+  const turn = appendTurn();
+  abortCtl = new AbortController();
+  let aiText = '', lastTool = null;
+  try {
+    const resp = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: abortCtl.signal,
+      body: JSON.stringify({ messages: chatMessages, model: S.model, cwd: S.cwd, system: getSystemPrompt() }) });
+    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+    for await (const ev of sse(resp)) {
+      if (ev.type === 'message') { aiText = ev.content || ''; turn.body.append(renderMarkdown(aiText || '_(empty response)_')); }
+      else if (ev.type === 'tool_call') lastTool = appendTool(turn.body, ev.name, ev.args || {});
+      else if (ev.type === 'tool_result') finishTool(lastTool, ev.result || '');
+      else if (ev.type === 'error') turn.body.append(h('div', { class: 'chat-error' }, ev.content));
+      scrollChat();
+    }
+  } catch (e) {
+    turn.body.append(e.name === 'AbortError' ? h('div', { class: 'chat-note' }, 'Stopped.') : h('div', { class: 'chat-error' }, 'Request failed: ' + e.message));
+  }
+  turn.thinking(false);
+  $$('.tool-status.running', turn.body).forEach(s => { s.className = 'tool-status err'; s.textContent = 'stopped'; });
+  if (aiText) chatMessages.push({ role: 'assistant', content: aiText });
+  abortCtl = null; setBusy(false); scrollChat();
+  emit('chatResponse', aiText);
+}
+
+function insertIntoChat(text) {
+  setPanel('chat', true);
+  const i = $('#chat-input');
+  i.value += (i.value && !i.value.endsWith('\n') ? '\n' : '') + text;
+  autosizeInput(); i.focus(); i.selectionStart = i.selectionEnd = i.value.length;
+}
+function selectionSnippet() {
+  const t = tabs.get(active);
+  if (t?.kind !== 'text') return null;
+  const sel = editor.getSelection();
+  if (!sel || sel.isEmpty()) return null;
+  return `${rel(t.path)}:${sel.startLineNumber}-${sel.endLineNumber}\n\`\`\`${t.model.getLanguageId()}\n${t.model.getValueInRange(sel)}\n\`\`\``;
+}
+const autosizeInput = () => { const i = $('#chat-input'); i.style.height = 'auto'; i.style.height = Math.min(i.scrollHeight, 240) + 'px'; };
+
+// Slash commands
+const SLASH = [
+  { name: 'effort', args: 'low|medium|high|max', desc: 'How hard the model thinks', run: a => a[0] ? setEffort(a[0]) : runCommand('ai.effort') },
+  { name: 'model', args: '[name]', desc: 'Switch model', run: a => a.length ? setModelByName(a.join(' ')) : runCommand('ai.model') },
+  { name: 'theme', args: '[name]', desc: 'Change color theme', run: a => { if (!a.length) return pickTheme(); const id = Object.keys(THEMES).find(k => k.includes(a.join('-').toLowerCase()) || THEMES[k].label.toLowerCase().includes(a.join(' ').toLowerCase())); id ? setSettings({ theme: id }) : appendSystem(`No theme matching "${esc(a.join(' '))}"`); } },
+  { name: 'cwd', args: '[path]', desc: 'Change working folder', run: async a => { const p = a.length ? a.join(' ') : await pickFolder(); if (p) { await setCwd(p); appendSystem(`Working folder → <code>${esc(tilde(S.cwd))}</code>`); } } },
+  { name: 'clear', args: '', desc: 'Clear the conversation', run: () => newChat() },
+  { name: 'new', args: '', desc: 'Start a new conversation', run: () => newChat() },
+  { name: 'compact', args: '', desc: 'Summarise history to save context', run: () => compactChat() },
+  { name: 'file', args: '<path>', desc: 'Open a file in the editor', run: a => a.length ? openFile(absPath(a.join(' '))) : quickOpen() },
+  { name: 'run', args: '<command>', desc: 'Run a command in the terminal', run: a => a.length ? runInTerminal(a.join(' ')) : appendSystem('Usage: <code>/run &lt;command&gt;</code>') },
+  { name: 'explain', args: '', desc: 'Explain the open file or selection', run: () => runCommand('ai.explainSelection') },
+  { name: 'fix', args: '', desc: 'Fix bugs in the open file or selection', run: () => runCommand('ai.fixSelection') },
+  { name: 'settings', args: '', desc: 'Open settings', run: () => showView('settings', true) },
+  { name: 'plugins', args: '', desc: 'Manage plugins', run: () => showView('plugins', true) },
+  { name: 'help', args: '', desc: 'List commands and shortcuts', run: () => slashHelp() },
+];
+let slashSel = 0;
+const slashMatches = v => { const q = v.slice(1).split(/\s/)[0].toLowerCase(); return SLASH.filter(c => c.name.startsWith(q)); };
+function renderSlash() {
+  const v = $('#chat-input').value, box = $('#slash');
+  if (!v.startsWith('/') || v.includes('\n') || /^\/\S+\s/.test(v)) { box.classList.remove('open'); return; }
+  const m = slashMatches(v);
+  if (!m.length) { box.classList.remove('open'); return; }
+  slashSel = Math.min(slashSel, m.length - 1);
+  box.replaceChildren(...m.map((c, i) => h('div', { class: 'sl-item' + (i === slashSel ? ' sel' : ''), onmousedown: e => { e.preventDefault(); pickSlash(c); } },
+    h('span', { class: 'sl-name' }, '/' + c.name), h('span', { class: 'sl-args' }, c.args), h('span', { class: 'sl-desc' }, c.desc))));
+  box.classList.add('open');
+}
+function pickSlash(c) {
+  const i = $('#chat-input');
+  if (c.args) { i.value = `/${c.name} `; $('#slash').classList.remove('open'); i.focus(); }
+  else { i.value = ''; $('#slash').classList.remove('open'); autosizeInput(); dispatchSlash('/' + c.name); }
+}
+async function dispatchSlash(raw) {
+  const [name, ...args] = raw.trim().slice(1).split(/\s+/);
+  const c = SLASH.find(s => s.name === name.toLowerCase());
+  if (!c) { appendSystem(`Unknown command <code>/${esc(name)}</code> — try <code>/help</code>`); return; }
+  try { await c.run(args); } catch (e) { appendSystem(`<span style="color:var(--red)">${esc(e.message)}</span>`); }
+}
+function slashHelp() {
+  const keys = [...commands.values()].filter(c => c.keys && !c.hidden).map(c => `<kbd>${esc(c.keys)}</kbd> ${esc(c.label)}`);
+  appendSystem(SLASH.map(c => `<code>/${c.name}</code> <span style="color:var(--fg3)">${esc(c.args)}</span> — ${esc(c.desc)}`).join('<br>') +
+    `<br><br><b>Shortcuts</b><br>` + keys.join('<br>'));
+}
+function newChat() { if (busy) abortCtl?.abort(); chatMessages = []; renderChatEmpty(); $('#chat-input').focus(); }
+async function compactChat() {
+  if (chatMessages.length < 4) { appendSystem('Nothing to compact yet.'); return; }
+  appendSystem('Compacting the conversation…');
+  setBusy(true);
+  let summary = '';
+  try {
+    const resp = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: S.model, cwd: S.cwd,
+      system: 'Summarise conversations precisely and briefly.', messages: [...chatMessages, { role: 'user', content: 'Summarise this conversation in 3-6 bullet points: what was built or changed, which files, and open questions. Do not use any tools.' }] }) });
+    for await (const ev of sse(resp)) if (ev.type === 'message') summary = ev.content;
+  } catch (e) { appendSystem('Compact failed: ' + esc(e.message)); }
+  setBusy(false);
+  if (!summary) return;
+  chatMessages = [{ role: 'user', content: 'Summary of our conversation so far:\n' + summary }, { role: 'assistant', content: 'Got it — continuing from that summary.' }];
+  renderChatEmpty(); $('.chat-empty').remove();
+  appendSystem('<b>Conversation compacted.</b> Summary kept as context:');
+  const turn = appendTurn(); turn.thinking(false); turn.body.append(renderMarkdown(summary));
+}
+
+function setEffort(lvl) {
+  lvl = String(lvl).toLowerCase();
+  if (!EFFORT_PROMPTS[lvl]) { appendSystem(`Unknown effort "${esc(lvl)}" — use low, medium, high or max`); return; }
+  setSettings({ effort: lvl });
+  appendSystem(`Effort set to <b>${lvl}</b> — ${esc(EFFORT_PROMPTS[lvl])}`);
+}
+function setModelByName(q) {
+  const m = MODELS.find(m => m === q) || MODELS.find(m => m.toLowerCase().includes(q.toLowerCase()));
+  if (!m) { appendSystem(`No model matching "${esc(q)}". Installed: ${MODELS.map(m => `<code>${esc(shortModel(m))}</code>`).join(', ')}`); return; }
+  setSettings({ model: m }); appendSystem(`Model → <b>${esc(shortModel(m))}</b>`);
+}
+const shortModel = m => (m || '').split('/').pop().replace(/-GGUF/i, '');
+
+// ── AI: autocomplete, inline edits, quick fixes ───────────────────────────────
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const AIC = { state: 'idle', status: null, inflight: null };
+let reviewOpen = false;
+
+async function streamText(path, body, signal, onChunk) {
+  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  const reader = r.body.getReader(), dec = new TextDecoder();
+  let out = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    out += dec.decode(value, { stream: true });
+    onChunk?.(out);
+  }
+  const i = out.indexOf('\u0000ERROR:');
+  if (i >= 0) throw new Error(out.slice(i + 7));
+  return out;
+}
+
+async function checkCompleteStatus() {
+  try { AIC.status = await api('/api/complete-status'); } catch { AIC.status = { online: false }; }
+  renderAiStatus();
+}
+function setAiState(s) { AIC.state = s; renderAiStatus(); }
+function renderAiStatus() {
+  const el = $('#sb-ai');
+  if (!el) return;
+  const st = AIC.status;
+  let cls = 'on', tip;
+  if (S.aiComplete === false) { cls = 'off'; tip = 'AI autocomplete is off — click for options'; }
+  else if (!st) { cls = 'off'; tip = 'Checking the autocomplete server…'; }
+  else if (!st.online) { cls = 'warn'; tip = `Autocomplete server ${st.host} isn't running — click for options`; }
+  else if (!st.hasModel) { cls = 'warn'; tip = `${st.model} isn't downloaded on ${st.host} — click to download it`; }
+  else if (AIC.state === 'busy') { cls = 'busy'; tip = 'Writing a suggestion…'; }
+  else tip = `AI autocomplete: ${st.model} @ ${st.host}\nTab accepts · Alt+\\ asks for a suggestion · Ctrl+K edits with AI`;
+  el.className = 'sb-item sb-ai ' + cls;
+  el.title = tip;
+  el.innerHTML = `${icon('sparkle')}<span>${S.aiComplete === false ? 'AI off' : cls === 'warn' ? 'AI offline' : 'AI'}</span>`;
+}
+function aiStatusMenu(e) {
+  const st = AIC.status || {}, r = e.currentTarget.getBoundingClientRect();
+  showMenu(r.left, r.top, [
+    { label: S.aiComplete === false ? 'Turn On AI Autocomplete' : 'Turn Off AI Autocomplete', run: () => runCommand('ai.toggleComplete') },
+    { label: 'Suggest Code Here', kbd: 'Alt+\\', run: () => runCommand('ai.triggerComplete') },
+    { label: 'Edit with ocode…', kbd: 'Ctrl+K', run: () => runCommand('ai.inlineEdit') },
+    { label: 'Fix All Problems in File', run: () => runCommand('ai.fixFile') },
+    '-',
+    { label: 'Choose Autocomplete Model…', run: () => runCommand('ai.completeModel') },
+    ...(st.online && !st.hasModel ? [{ label: `Download ${st.model}…`, run: () => runCommand('ai.pullCompleteModel') }] : []),
+    { label: 'Autocomplete Settings', run: () => showView('settings', true) },
+    { label: 'Re-check Server', run: checkCompleteStatus },
+  ]);
+}
+
+const bracketBalance = s => { let b = 0; for (const c of s) { if ('([{'.includes(c)) b++; else if (')]}'.includes(c)) b--; } return b; };
+const MAX_SUGGESTION_LINES = 16;
+// Returns the usable part of a raw completion; `complete` means nothing after it is worth waiting for.
+function cleanCompletion(text, lineText, column) {
+  text = text.replace(/\r/g, '');
+  const after = lineText.slice(column - 1);
+  let complete = false;
+  if (after.trim()) {
+    complete = text.includes('\n');
+    text = text.split('\n')[0];
+    const tail = after.trim();
+    if (bracketBalance(text) < 0)
+      for (let k = Math.min(text.length, tail.length); k > 0; k--) if (text.endsWith(tail.slice(0, k))) { text = text.slice(0, -k); break; }
+  } else {
+    const before = lineText.slice(0, column - 1);
+    if (!before.trim()) {
+      text = text.replace(/^[ \t]*\n(?:[ \t]*\n)*/, '');
+      const lead = (text.match(/^[ \t]*/) || [''])[0].length;
+      text = text.slice(Math.min(lead, before.length));
+    }
+    const base = (lineText.match(/^\s*/) || [''])[0].length, lines = text.split('\n'), keep = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (keep.length >= MAX_SUGGESTION_LINES) { complete = true; break; }
+      if (i > 0 && !lines[i].trim()) {
+        const next = lines.slice(i + 1).find(l => l.trim());
+        if (next && next.match(/^\s*/)[0].length <= base) { complete = true; break; }
+        if (!next) break;
+      }
+      keep.push(lines[i]);
+    }
+    text = keep.join('\n');
+  }
+  return { text: text.replace(/\s+$/, ''), complete };
+}
+
+function registerAiProviders() {
+  monaco.languages.registerInlineCompletionsProvider('*', {
+    async provideInlineCompletions(model, position, context, token) {
+      const st = AIC.status;
+      if (S.aiComplete === false || !st?.online || !st?.hasModel || model !== editor.getModel()) return { items: [] };
+      const auto = context.triggerKind === monaco.languages.InlineCompletionTriggerKind.Automatic;
+      const lineText = model.getLineContent(position.lineNumber), before = lineText.slice(0, position.column - 1), after = lineText.slice(position.column - 1);
+      if (auto) {
+        if (/\w$/.test(before) && /^\w/.test(after)) return { items: [] };
+        await sleep(S.completeDelay ?? 250);
+        if (token.isCancellationRequested) return { items: [] };
+      }
+      const full = model.getValue(), off = model.getOffsetAt(position), midLine = !!after.trim();
+      const ctl = new AbortController(), sub = token.onCancellationRequested(() => ctl.abort());
+      AIC.inflight?.abort(); AIC.inflight = ctl; setAiState('busy');
+      let raw = '', enough = false;
+      try {
+        try {
+          await streamText('/api/complete', {
+            prefix: full.slice(Math.max(0, off - 3500), off), suffix: full.slice(off, off + 1200),
+            maxTokens: midLine ? 40 : 128, stop: midLine ? ['\n'] : [],
+          }, ctl.signal, t => {
+            raw = t;
+            // Generation slows down with context on smaller GPUs, so stop as soon as the suggestion is complete.
+            if (!enough && cleanCompletion(t, lineText, position.column).complete) { enough = true; ctl.abort(); }
+          });
+        } catch (e) { if (!(e.name === 'AbortError' && enough)) throw e; }
+        const { text } = cleanCompletion(raw, lineText, position.column);
+        if (!text.trim() || token.isCancellationRequested) return { items: [] };
+        return { items: [{ insertText: text, range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column) }] };
+      } catch (e) {
+        if (e.name !== 'AbortError') { console.warn('[autocomplete]', e); if (!auto) toast('Autocomplete failed: ' + e.message, 'error'); checkCompleteStatus(); }
+        return { items: [] };
+      } finally {
+        sub.dispose();
+        if (AIC.inflight === ctl) { AIC.inflight = null; setAiState('idle'); }
+      }
+    },
+    freeInlineCompletions() {},
+    disposeInlineCompletions() {},
+  });
+
+  monaco.editor.registerCommand('ocode.aiFix', (_a, marker) => aiFixMarker(marker));
+  monaco.editor.registerCommand('ocode.aiEditRange', (_a, range) => aiEdit({ range }));
+  monaco.languages.registerCodeActionProvider('*', {
+    provideCodeActions(model, range, context) {
+      const actions = (context.markers || []).filter(m => m.severity >= monaco.MarkerSeverity.Warning).slice(0, 3).map(m => ({
+        title: `✦ Fix with ocode: ${m.message.split('\n')[0].slice(0, 80)}`, kind: 'quickfix', diagnostics: [m], isPreferred: true,
+        command: { id: 'ocode.aiFix', title: 'Fix with ocode', arguments: [m] } }));
+      if (!monaco.Range.isEmpty(range)) actions.push({ title: '✦ Edit with ocode…', kind: 'refactor.rewrite', command: { id: 'ocode.aiEditRange', title: 'Edit with ocode', arguments: [range] } });
+      return { actions, dispose() {} };
+    },
+  });
+}
+
+let aiProg = null;
+function showAiProgress(text) {
+  aiProg?.ctl.abort();
+  const ctl = new AbortController(), el = $('#ai-progress');
+  $('#ai-progress-text').textContent = text;
+  $('#ai-progress-count').textContent = '';
+  el.classList.add('open');
+  const key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); ctl.abort(); } };
+  window.addEventListener('keydown', key, true);
+  $('#ai-progress-cancel').onclick = () => ctl.abort();
+  const p = {
+    ctl,
+    update: t => { $('#ai-progress-count').textContent = `${t.length.toLocaleString()} chars`; },
+    done: () => { window.removeEventListener('keydown', key, true); if (aiProg === p) { el.classList.remove('open'); aiProg = null; } },
+  };
+  aiProg = p;
+  return p;
+}
+
+function stripFences(t) {
+  t = t.replace(/\r/g, '');
+  const m = t.match(/```[^\n]*\n([\s\S]*?)(?:```|$)/);
+  if (m) t = m[1];
+  return t.replace(/<\/?(selection|before|after)>/g, '').replace(/^\n+/, '').replace(/\s+$/, '');
+}
+
+let diffEd = null;
+function reviewDiff({ original, modified, language, title }) {
+  return new Promise(resolve => {
+    reviewOpen = true;
+    $('#review-title').textContent = title || 'Review change';
+    $('#review').classList.add('open');
+    if (!diffEd) diffEd = monaco.editor.createDiffEditor($('#review-diff'), {
+      automaticLayout: true, renderSideBySide: true, originalEditable: false, minimap: { enabled: false }, scrollBeyondLastLine: false,
+      renderOverviewRuler: false, ignoreTrimWhitespace: false, hideUnchangedRegions: { enabled: true }, padding: { top: 8 } });
+    diffEd.updateOptions({ fontSize: S.fontSize, fontFamily: S.fontFamily, fontLigatures: S.fontLigatures, wordWrap: S.wordWrap });
+    const o = monaco.editor.createModel(original, language), m = monaco.editor.createModel(modified, language);
+    diffEd.setModel({ original: o, modified: m });
+    let cleanup = () => {};
+    const finish = ok => {
+      const val = m.getValue();
+      cleanup(); reviewOpen = false;
+      $('#review').classList.remove('open');
+      diffEd.setModel(null); o.dispose(); m.dispose();
+      if (editor.getModel()) editor.focus();
+      resolve(ok ? val : null);
+    };
+    const key = e => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || !e.target.closest?.('.monaco-editor'))) { e.preventDefault(); e.stopPropagation(); finish(true); }
+    };
+    window.addEventListener('keydown', key, true);
+    cleanup = () => window.removeEventListener('keydown', key, true);
+    $('#review-accept').onclick = () => finish(true);
+    $('#review-reject').onclick = () => finish(false);
+    setTimeout(() => diffEd.getModifiedEditor().focus(), 60);
+  });
+}
+
+const AI_EDIT_SYSTEM = "You are a precise code-editing engine inside a code editor. You receive part of a file split into <before>, <selection> and <after>, plus an instruction. " +
+  "Reply with exactly ONE fenced code block containing only the new code that replaces <selection> (if the selection is empty: the code to insert at that point). " +
+  "Never repeat the before/after context. Write nothing before or after the code block. Match the file's existing style and indentation. Write complete, working code.";
+const FENCED_BLOCK = /```[^\n]*\n[\s\S]*?```/;
+
+async function aiEdit({ range, instruction, title } = {}) {
+  const t = tabs.get(active);
+  if (t?.kind !== 'text') { toast('Open a file first', 'warn'); return; }
+  const model = t.model;
+  let sel = monaco.Range.lift(range || editor.getSelection());
+  if (!sel.isEmpty()) sel = new monaco.Range(sel.startLineNumber, 1, sel.endLineNumber, model.getLineMaxColumn(sel.endLineNumber));
+  const isInsert = sel.isEmpty();
+  if (!instruction) instruction = await askInput(isInsert ? 'Edit with ocode — what should be written here?' : 'Edit with ocode — how should the selected code change?', '',
+    isInsert ? 'e.g. "a function that parses a CSV file into a list of dicts"' : 'e.g. "add error handling", "make it async", "add comments"');
+  if (!instruction) return;
+  const original = model.getValueInRange(sel);
+  const before = model.getValueInRange(new monaco.Range(Math.max(1, sel.startLineNumber - 80), 1, sel.startLineNumber, sel.startColumn));
+  const endLine = Math.min(model.getLineCount(), sel.endLineNumber + 40);
+  const after = model.getValueInRange(new monaco.Range(sel.endLineNumber, sel.endColumn, endLine, model.getLineMaxColumn(endLine)));
+  const lang = model.getLanguageId();
+  const [deco] = model.deltaDecorations([], [{ range: sel, options: { stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges, className: isInsert ? '' : 'ai-editing', isWholeLine: !isInsert } }]);
+  const prog = showAiProgress(isInsert ? 'ocode is writing code…' : 'ocode is editing…');
+  let out = '', gotBlock = false;
+  try {
+    await streamText('/api/ai', { system: AI_EDIT_SYSTEM, temperature: 0.2, maxTokens: Math.ceil(original.length / 3) + (isInsert ? 1500 : 600),
+      prompt: `File: ${rel(t.path)} (${lang})\n\n<before>\n${before}\n</before>\n<selection>\n${original}\n</selection>\n<after>\n${after}\n</after>\n\n` +
+        `Instruction: ${instruction}\n\nReply with one \`\`\`${lang} code block only.` },
+      prog.ctl.signal, txt => {
+        out = txt; prog.update(txt);
+        // Small local models often keep talking after the code; stop as soon as the block closes.
+        if (!gotBlock && FENCED_BLOCK.test(txt)) { gotBlock = true; prog.ctl.abort(); }
+      });
+  } catch (e) {
+    if (!(e.name === 'AbortError' && gotBlock)) {
+      prog.done();
+      if (!model.isDisposed()) model.deltaDecorations([deco], []);
+      if (e.name !== 'AbortError') toast('ocode edit failed: ' + e.message, 'error');
+      return;
+    }
+  }
+  prog.done();
+  if (model.isDisposed()) return;
+  const target = model.getDecorationRange(deco) || sel;
+  out = stripFences(out);
+  if (/\n$/.test(original) && out && !out.endsWith('\n')) out += '\n';
+  if (isInsert &&!model.getLineContent(target.startLineNumber).slice(0, target.startColumn - 1).trim()) out = out.replace(/^[ \t]+/, '');
+  if (!out.trim()) { model.deltaDecorations([deco], []); toast('ocode returned no code', 'warn'); return; }
+  if (out === original) { model.deltaDecorations([deco], []); toast('ocode suggested no changes', 'ok'); return; }
+  const result = await reviewDiff({ original, modified: out, language: lang, title: title || instruction });
+  if (model.isDisposed()) return;
+  const finalRange = model.getDecorationRange(deco) || target;
+  model.deltaDecorations([deco], []);
+  if (result == null) return;
+  if (editor.getModel() === model) {
+    editor.pushUndoStop();
+    editor.executeEdits('ocode', [{ range: finalRange, text: result, forceMoveMarkers: true }]);
+    editor.pushUndoStop();
+    editor.focus();
+  } else model.pushEditOperations([], [{ range: finalRange, text: result }], () => null);
+  toast('Change applied — Ctrl+Z to undo', 'ok', 2200);
+}
+
+function aiFixMarker(m) {
+  const model = editor.getModel();
+  if (!model || !m) return;
+  const start = Math.max(1, m.startLineNumber - 3), end = Math.min(model.getLineCount(), m.endLineNumber + 3);
+  const sev = m.severity === monaco.MarkerSeverity.Error ? 'error' : 'warning';
+  return aiEdit({ range: new monaco.Range(start, 1, end, model.getLineMaxColumn(end)), title: `Fix: ${m.message.split('\n')[0]}`,
+    instruction: `Fix this ${sev} reported on line ${m.startLineNumber}${m.source ? ` by ${m.source}` : ''}: "${m.message}". Change only what is needed to fix it.` });
+}
+async function aiFixFile() {
+  const model = editor.getModel();
+  if (!model) { toast('Open a file first', 'warn'); return; }
+  if (model.getLineCount() > 800) { toast('That file is too big to fix in one go — select a section and press Ctrl+K', 'warn'); return; }
+  const markers = monaco.editor.getModelMarkers({ resource: model.uri }).filter(m => m.severity >= monaco.MarkerSeverity.Warning);
+  const list = markers.map(m => `- line ${m.startLineNumber}: ${m.message.split('\n')[0]}`).join('\n');
+  return aiEdit({ range: model.getFullModelRange(),
+    title: markers.length ? `Fix ${markers.length} problem${markers.length > 1 ? 's' : ''} in ${basename(active)}` : `Find and fix bugs in ${basename(active)}`,
+    instruction: markers.length ? `Fix these problems and any other obvious bugs:\n${list}\nReturn the whole corrected file.` : 'Find and fix any bugs. Return the whole corrected file; if there are no bugs return it unchanged.' });
+}
+
+async function pullCompleteModel() {
+  await checkCompleteStatus();
+  const st = AIC.status || {};
+  if (!st.online) { toast(`The autocomplete server (${st.host || S.completeHost}) isn't running`, 'error'); return; }
+  if (!await askConfirm(`Download ${S.completeModel} from ollama.com to ${st.host}?`, 'Download')) return;
+  const prog = showAiProgress(`Downloading ${S.completeModel}…`);
+  try {
+    await streamText('/api/complete-pull', {}, prog.ctl.signal, txt => { $('#ai-progress-count').textContent = txt.trim().split('\n').pop(); });
+    toast(`${S.completeModel} is ready`, 'ok');
+  } catch (e) { if (e.name !== 'AbortError') toast('Download failed: ' + e.message, 'error'); }
+  prog.done();
+  checkCompleteStatus();
+}
+async function pickCompleteModel() {
+  await checkCompleteStatus();
+  const st = AIC.status || {}, installed = st.models || [];
+  const suggested = ['qwen2.5-coder:1.5b-base', 'qwen2.5-coder:3b-base', 'qwen2.5-coder:7b-base', 'deepseek-coder:1.3b-base', 'starcoder2:3b'];
+  const v = await askPick(`Autocomplete model on ${st.host || S.completeHost}`, [
+    ...installed.map(m => ({ label: m, detail: m === S.completeModel ? 'installed · current' : 'installed', value: m })),
+    ...suggested.filter(m => !installed.includes(m)).map(m => ({ label: m, detail: 'not downloaded yet', value: m }))]);
+  if (v) setSettings({ completeModel: v });
+}
+
+// ── Side panel (used by plugins, e.g. Markdown preview) ───────────────────────
+let sidePanel = null;
+function openSidePanel({ title = '', render } = {}) {
+  closeSidePanel();
+  const body = $('#side-view .sv-body');
+  $('#side-view .sv-title').textContent = title;
+  $('#editor-wrap').classList.add('has-side');
+  const p = { body, closeCbs: [], setTitle: t => { $('#side-view .sv-title').textContent = t; }, onClose: cb => { p.closeCbs.push(cb); }, close: () => { if (sidePanel === p) closeSidePanel(); } };
+  sidePanel = p;
+  try { render?.(body, p); } catch (e) { console.error(e); toast(e.message, 'error'); }
+  return p;
+}
+function closeSidePanel() {
+  const p = sidePanel;
+  if (!p) return;
+  sidePanel = null;
+  $('#editor-wrap').classList.remove('has-side');
+  $('#side-view .sv-body').replaceChildren();
+  for (const cb of p.closeCbs) { try { cb(); } catch (e) { console.error(e); } }
+}
+
+// ── Status bar & chrome ───────────────────────────────────────────────────────
+const pluginStatus = { left: h('div', { class: 'grp' }), right: h('div', { class: 'grp' }) };
+function addStatusItem({ text = '', tooltip = '', align = 'right', onClick } = {}) {
+  const el = h('div', { class: 'sb-item' + (onClick ? '' : ' static'), title: tooltip }, text);
+  if (onClick) el.onclick = onClick;
+  pluginStatus[align === 'left' ? 'left' : 'right'].append(el);
+  return { set: t => { el.textContent = t; }, setTooltip: t => { el.title = t; }, show: (v = true) => { el.style.display = v ? '' : 'none'; }, remove: () => el.remove() };
+}
+const sbEl = (id, onclick, title) => h('div', { class: 'sb-item', id, title, onclick });
+function buildStatusbar() {
+  $('#sb-left').replaceChildren(
+    sbEl('sb-branch', () => runInTerminal('git status'), 'Git branch — click for git status'),
+    sbEl('sb-problems', () => { if (editor.getModel()) { editor.focus(); editor.trigger('sb', 'editor.action.marker.next'); } }, 'Problems — click to jump'),
+    pluginStatus.left);
+  $('#sb-right').replaceChildren(pluginStatus.right,
+    sbEl('sb-pos', () => editor.getModel() && quickOpen(':'), 'Go to line'),
+    sbEl('sb-indent', () => runCommand('editor.indentation'), 'Indentation'),
+    sbEl('sb-eol', () => runCommand('editor.toggleEol'), 'Line endings'),
+    sbEl('sb-lang', () => runCommand('editor.language'), 'Language mode'),
+    sbEl('sb-ai', aiStatusMenu, 'AI autocomplete'),
+    sbEl('sb-effort', () => runCommand('ai.effort'), 'Effort level'),
+    sbEl('sb-model', () => runCommand('ai.model'), 'Model'));
+}
+function renderPosStatus() {
+  const m = editor?.getModel(), el = $('#sb-pos');
+  if (!m || !el) { if (el) el.textContent = ''; return; }
+  const p = editor.getPosition(), sel = editor.getSelection();
+  const n = sel && !sel.isEmpty() ? m.getValueInRange(sel).length : 0;
+  el.textContent = `Ln ${p.lineNumber}, Col ${p.column}` + (n ? ` (${n} selected)` : '');
+}
+function renderStatus() {
+  if (!$('#sb-branch')) return;
+  const m = editor?.getModel();
+  $('#sb-branch').innerHTML = git.branch ? `${icon('branch')}${esc(git.branch)}${git.changes ? ` <span style="color:var(--yellow)">● ${git.changes}</span>` : ''}` : '';
+  if (m) {
+    const mk = monaco.editor.getModelMarkers({ resource: m.uri });
+    const errs = mk.filter(x => x.severity === monaco.MarkerSeverity.Error).length, warns = mk.filter(x => x.severity === monaco.MarkerSeverity.Warning).length;
+    $('#sb-problems').innerHTML = `<span class="${errs ? 'sb-err' : ''}" style="display:flex;gap:4px;align-items:center">${icon('error')}${errs}</span><span class="${warns ? 'sb-warn' : ''}" style="display:flex;gap:4px;align-items:center">${icon('warn')}${warns}</span>`;
+    const o = m.getOptions();
+    $('#sb-indent').textContent = o.insertSpaces ? `Spaces: ${o.tabSize}` : `Tab Size: ${o.tabSize}`;
+    $('#sb-eol').textContent = m.getEOL() === '\n' ? 'LF' : 'CRLF';
+    const l = monaco.languages.getLanguages().find(l => l.id === m.getLanguageId());
+    $('#sb-lang').textContent = l?.aliases?.[0] || m.getLanguageId();
+  } else for (const id of ['sb-problems', 'sb-indent', 'sb-eol', 'sb-lang']) $('#' + id).textContent = '';
+  renderPosStatus();
+  $('#sb-effort').textContent = `effort: ${S.effort}`;
+  $('#sb-model').innerHTML = `${icon('sparkle')}${esc(shortModel(S.model))}`;
+}
+function renderChrome() {
+  $('#tb-folder').innerHTML = `${icon('folder')}<span>${esc(basename(S.cwd))}</span>`;
+  $('#tb-folder').title = `${S.cwd} — Open folder (Ctrl+O)`;
+  const e = $('#tb-effort'); e.textContent = S.effort; e.className = 'effort ' + S.effort;
+  $('#tb-model span:last-child').textContent = shortModel(S.model);
+  $('#tb-model').title = S.model;
+  $('#ci-effort').textContent = `effort: ${S.effort}`;
+  renderStatus(); renderChatFilePill();
+}
+function renderChatFilePill() {
+  const t = tabs.get(active), el = $('#ci-file');
+  if (t?.kind !== 'text') { el.style.display = 'none'; return; }
+  const sel = editor.getSelection();
+  el.style.display = '';
+  el.textContent = t.name + (sel && !sel.isEmpty() ? `:${sel.startLineNumber}-${sel.endLineNumber}` : '');
+  el.title = `${tilde(t.path)} is shared with ocode as context`;
+}
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+const PANELS = { sidebar: ['#sidebar', '#split-sidebar'], term: ['#term-panel', '#term-split'], chat: ['#chat', '#split-chat'] };
+const panelVisible = n => $(PANELS[n][0]).style.display !== 'none';
+function setPanel(name, show, persist = true) {
+  if (panelVisible(name) === show && persist) return;
+  for (const s of PANELS[name]) $(s).style.display = show ? '' : 'none';
+  $({ sidebar: '#tb-sidebar', term: '#tb-term', chat: '#tb-chat' }[name]).classList.toggle('off', !show);
+  if (name === 'chat') $('#ab-chat').classList.toggle('active', show);
+  if (name === 'term') { if (!show) $('#center').classList.remove('term-max'); else setTimeout(fitTerm, 0); }
+  if (name === 'sidebar') $$('.ab[data-view]').forEach(b => b.classList.toggle('active', show && b.dataset.view === currentView));
+  if (persist) saveLayout({ [name]: show });
+}
+function togglePanel(name) {
+  const show = !panelVisible(name);
+  setPanel(name, show);
+  if (show && name === 'term') term.focus();
+  if (show && name === 'chat') $('#chat-input').focus();
+  if (!show && editor.getModel()) editor.focus();
+}
+const saveLayout = patch => setSettings({ layout: { ...(S.layout || {}), ...patch } });
+function applyLayout() {
+  const L = S.layout || {};
+  $('#sidebar').style.width = (L.sidebarWidth || 270) + 'px';
+  $('#chat').style.width = (L.chatWidth || 410) + 'px';
+  $('#term-panel').style.height = (L.termHeight || 260) + 'px';
+  setPanel('sidebar', L.sidebar !== false, false);
+  setPanel('term', L.term !== false, false);
+  setPanel('chat', L.chat !== false, false);
+}
+function dragSplit(handle, target, axis, sign, key, min, maxFn) {
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const start = axis === 'x' ? e.clientX : e.clientY, size0 = axis === 'x' ? target.offsetWidth : target.offsetHeight;
+    handle.classList.add('dragging'); document.body.classList.add('resizing-' + axis);
+    const move = ev => {
+      const d = ((axis === 'x' ? ev.clientX : ev.clientY) - start) * sign;
+      target.style[axis === 'x' ? 'width' : 'height'] = Math.max(min, Math.min(maxFn(), size0 + d)) + 'px';
+      if (axis === 'y') fitTerm();
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+      handle.classList.remove('dragging'); document.body.classList.remove('resizing-' + axis);
+      saveLayout({ [key]: axis === 'x' ? target.offsetWidth : target.offsetHeight }); fitTerm();
+    };
+    document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+  });
+}
+
+let currentView = 'explorer';
+function selectView(name) {
+  currentView = name;
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  $$('.ab[data-view]').forEach(b => b.classList.toggle('active', panelVisible('sidebar') && b.dataset.view === name));
+}
+function showView(name, forceOpen = false) {
+  if (!forceOpen && panelVisible('sidebar') && currentView === name) { setPanel('sidebar', false); return; }
+  setPanel('sidebar', true);
+  selectView(name);
+  if (name === 'search') { const i = $('#search-input'); const sel = editor.getModel() && editor.getModel().getValueInRange(editor.getSelection()); if (sel && !sel.includes('\n')) { i.value = sel; runSearch(); } i.focus(); i.select(); }
+  if (name === 'settings') renderSettingsView();
+  if (name === 'plugins') renderPluginsView();
+}
+
+// ── Settings view ─────────────────────────────────────────────────────────────
+const sel = (...pairs) => pairs.map(p => Array.isArray(p) ? p : [p, p[0].toUpperCase() + p.slice(1)]);
+const SETTINGS_SCHEMA = [
+  ['Appearance', [
+    { key: 'theme', label: 'Color theme', type: 'select', options: () => Object.entries(THEMES).map(([v, t]) => [v, t.label]) },
+    { key: 'fontSize', label: 'Editor font size', type: 'number', min: 8, max: 40 },
+    { key: 'fontFamily', label: 'Font family', type: 'text' },
+    { key: 'fontLigatures', label: 'Font ligatures', type: 'bool' },
+    { key: 'minimap', label: 'Minimap', type: 'bool' },
+    { key: 'lineNumbers', label: 'Line numbers', type: 'select', options: sel('on', 'relative', 'off') },
+    { key: 'renderWhitespace', label: 'Show whitespace', type: 'select', options: sel('none', 'selection', 'boundary', 'all') },
+    { key: 'cursorBlinking', label: 'Cursor animation', type: 'select', options: sel('smooth', 'blink', 'phase', 'expand', 'solid') },
+    { key: 'bracketPairColorization', label: 'Colorize bracket pairs', type: 'bool' },
+    { key: 'stickyScroll', label: 'Sticky scroll', desc: 'Keep the current function/class header pinned', type: 'bool' },
+    { key: 'smoothScrolling', label: 'Smooth scrolling', type: 'bool' },
+  ]],
+  ['Editing', [
+    { key: 'tabSize', label: 'Tab size for new files', type: 'number', min: 1, max: 8 },
+    { key: 'insertSpaces', label: 'Indent with spaces', type: 'bool' },
+    { key: 'wordWrap', label: 'Word wrap', type: 'select', options: sel('off', 'on', 'bounded') },
+    { key: 'autoSave', label: 'Auto save', desc: 'Save one second after you stop typing', type: 'bool' },
+    { key: 'formatOnSave', label: 'Format on Ctrl+S', desc: 'JS, TS, JSON, CSS and HTML', type: 'bool' },
+  ]],
+  ['Explorer', [
+    { key: 'sortOrder', label: 'Sort files by', type: 'select', options: () => Object.entries(SORTS).map(([k, [l]]) => [k, l]) },
+    { key: 'foldersFirst', label: 'Folders first', type: 'bool' },
+    { key: 'showHidden', label: 'Show hidden files', type: 'bool' },
+  ]],
+  ['Terminal', [{ key: 'terminalFontSize', label: 'Terminal font size', type: 'number', min: 8, max: 32 }]],
+  ['AI', [
+    { key: 'effort', label: 'Effort', type: 'select', options: sel('low', 'medium', 'high', 'max') },
+    { key: 'model', label: 'Chat & edit model', type: 'select', options: () => (MODELS.length ? MODELS : [S.model]).map(m => [m, shortModel(m)]) },
+    { key: 'aiComplete', label: 'AI autocomplete', desc: 'Ghost-text suggestions while you type — Tab accepts', type: 'bool' },
+    { key: 'completeHost', label: 'Autocomplete server', desc: 'Ollama URL — :11435 is the AMD GPU instance', type: 'text' },
+    { key: 'completeModel', label: 'Autocomplete model', desc: 'A small base coder model is fastest', type: 'text' },
+    { key: 'completeDelay', label: 'Autocomplete delay (ms)', type: 'number', min: 0, max: 3000 },
+  ]],
+];
+function renderSettingsView() {
+  const body = $('#settings-body');
+  const rows = [];
+  for (const [group, fields] of SETTINGS_SCHEMA) {
+    rows.push(h('div', { class: 'set-group' }, group));
+    for (const f of fields) {
+      const id = 'set-' + f.key, v = S[f.key], set = val => setSettings({ [f.key]: val }, { fromForm: true });
+      let ctl;
+      if (f.type === 'bool') ctl = h('label', { class: 'switch' }, h('input', { type: 'checkbox', id, checked: !!v, onchange: e => set(e.target.checked) }), h('span'));
+      else if (f.type === 'select') ctl = h('select', { id, onchange: e => set(e.target.value) }, ...(typeof f.options === 'function' ? f.options() : f.options).map(([ov, ol]) => h('option', { value: ov, selected: ov === v }, ol)));
+      else if (f.type === 'number') ctl = h('input', { type: 'number', id, value: v, min: f.min, max: f.max, onchange: e => { const n = parseInt(e.target.value); if (!isNaN(n)) set(Math.min(f.max, Math.max(f.min, n))); } });
+      else ctl = h('input', { type: 'text', id, value: v, spellcheck: 'false', onchange: e => set(e.target.value) });
+      rows.push(h('div', { class: 'set-row' + (f.type === 'bool' ? ' inline' : '') }, h('label', { for: id, class: 'set-label' }, f.label, f.desc ? h('small', {}, f.desc) : null), ctl));
+    }
+  }
+  rows.push(h('div', { class: 'set-actions' },
+    h('button', { class: 'btn', onclick: () => openFile(INFO.settingsFile) }, 'Edit settings.json'),
+    h('button', { class: 'btn', onclick: () => runCommand('help.keys') }, 'Keyboard shortcuts')));
+  body.replaceChildren(...rows);
+}
+
+// ── Plugins ───────────────────────────────────────────────────────────────────
+const plugins = [], explorerActions = [];
+function makePluginApi(name) {
+  return {
+    name, monaco, icon, h, esc,
+    get editor() { return editor; },
+    get cwd() { return S.cwd; },
+    get activeFile() { return active; },
+    get home() { return INFO.home; },
+    get configDir() { return INFO.configDir; },
+    registerCommand: c => registerCommand({ ...c, source: name }),
+    registerSlashCommand: c => { SLASH.push({ args: '', desc: '', ...c, source: name }); },
+    registerTheme: (id, t) => addTheme(id, t),
+    registerRunner: (ext, tpl) => { RUNNERS[String(ext).replace(/^\./, '')] = tpl; },
+    registerExplorerAction: a => { explorerActions.push({ ...a, source: name }); },
+    registerEditorAction: a => {
+      editor.addAction({ id: a.id, label: a.label, contextMenuGroupId: a.contextMenu === false ? undefined : '1_plugins', contextMenuOrder: a.order || 0, run: () => a.run(editor) });
+      return registerCommand({ id: a.id, label: a.label, keys: a.keys, run: () => a.run(editor), source: name, when: () => !!editor.getModel() });
+    },
+    addStatusItem,
+    on,
+    toast,
+    css: text => { const s = h('style', {}, text); document.head.append(s); return () => s.remove(); },
+    openExternal: url => post('/api/open-external', { url }),
+    refreshExplorer: () => { invalidateFileIndex(); refreshTreeSoon(); },
+    exec: (command, opts = {}) => post('/api/exec', { command, cwd: opts.cwd || S.cwd, timeout: opts.timeout, input: opts.input }),
+    ai: {
+      ask: (prompt, o = {}) => streamText('/api/ai', { prompt, system: o.system, model: o.model, temperature: o.temperature }, o.signal, o.onChunk),
+      edit: (o = {}) => aiEdit(o),
+    },
+    layout: { get: n => panelVisible(n), set: (n, v, persist = true) => setPanel(n, !!v, persist), toggle: togglePanel },
+    ui: { input: askInput, pick: askPick, confirm: askConfirm, menu: showMenu, sidePanel: openSidePanel, diff: reviewDiff },
+    files: {
+      read: async p => (await api('/api/file?path=' + enc(absPath(p)))).content,
+      write: async (p, content) => { const ap = absPath(p); await post('/api/file', { path: ap, content }); refreshTreeSoon(); reloadIfOpen(ap); },
+      open: (p, opts) => openFile(absPath(p), opts),
+      list: p => api(`/api/files?path=${enc(absPath(p || S.cwd))}&hidden=1`),
+      move: (from, to) => post('/api/fs', { op: 'move', path: absPath(from), to: absPath(to) }),
+      mkdir: p => post('/api/fs', { op: 'mkdir', path: absPath(p) }),
+      trash: p => post('/api/fs', { op: 'trash', path: absPath(p) }),
+    },
+    terminal: { run: runInTerminal, write: d => wsSend({ type: 'input', data: d }), show: () => setPanel('term', true) },
+    chat: { send: sendChat, insert: insertIntoChat, system: appendSystem, get busy() { return busy; } },
+    settings: { get: k => S[k], set: (k, v) => setSettings({ [k]: v }) },
+  };
+}
+async function loadPlugins() {
+  let list = [];
+  try { list = await api('/api/plugins'); } catch {}
+  for (const p of list) {
+    const rec = { ...p, status: p.enabled ? 'loading' : 'disabled' };
+    plugins.push(rec);
+    if (!p.enabled) continue;
+    try {
+      const code = await fetch('/plugins/' + enc(p.file)).then(r => r.text());
+      await new Function('ocode', 'monaco', `${code}\n//# sourceURL=ocode-plugin:///${p.file}`)(makePluginApi(p.name), monaco);
+      rec.status = 'loaded';
+    } catch (e) {
+      rec.status = 'error'; rec.error = String(e?.message || e);
+      console.error(`[plugin ${p.name}]`, e);
+      toast(`Plugin "${p.name}" failed to load: ${rec.error}`, 'error', 6000);
+    }
+  }
+}
+const PLUGIN_DOC = `// ~/.config/ocode/plugins/<name>.js — runs when ocode starts.
+ocode.registerCommand({ id, label, keys: 'Ctrl+Alt+K', global, run })
+ocode.registerSlashCommand({ name, args, desc, run(argsArray) })
+ocode.registerTheme(id, { label, type: 'dark'|'light', p: {bg0, fg0, accent…}, tokens: {keyword: '#ff79c6', comment: ['#6272a4','italic']} })
+ocode.registerRunner('ext', 'command {f}')   // {f}=file, {n}=name w/o ext
+ocode.registerEditorAction({ id, label, keys, run(editor) })   // adds to editor right-click menu
+ocode.registerExplorerAction({ label, when(entry), run(entry) }) // entry = {name, path, is_dir}
+ocode.addStatusItem({ text, tooltip, align: 'left'|'right', onClick }) → { set, show, remove }
+ocode.on('fileOpen'|'fileSave'|'themeChange'|'cwdChange'|'settingsChange'|'chatResponse'|'ready', cb)
+await ocode.exec('cmd', { cwd, input, timeout }) → { code, stdout, stderr }
+await ocode.ai.ask(prompt, { system, onChunk })  → text from the chat model
+ocode.ai.edit({ range, instruction })          // AI rewrite with diff review
+ocode.files.read / write / open / list / move / mkdir / trash
+ocode.terminal.run('npm test')
+ocode.chat.send(text) / insert(text) / system(html)
+await ocode.ui.input(title) / pick(title, items) / confirm(msg)
+ocode.ui.sidePanel({ title, render(el, panel) })  // panel beside the editor
+await ocode.ui.diff({ original, modified, language, title }) → accepted text or null
+ocode.layout.get / set(name, show, persist) / toggle('sidebar'|'term'|'chat')
+ocode.home · ocode.configDir · ocode.cwd · ocode.activeFile
+ocode.css(text) · ocode.openExternal(url) · ocode.refreshExplorer()
+ocode.toast(msg, 'ok'|'warn'|'error')
+ocode.settings.get(key) / set(key, value)
+ocode.editor / ocode.monaco                   // full Monaco API`;
+function renderPluginsView() {
+  const body = $('#plugins-body');
+  body.replaceChildren(
+    h('div', { class: 'plug-actions' },
+      h('button', { class: 'btn primary', onclick: newPlugin }, 'New plugin'),
+      h('button', { class: 'btn', onclick: () => { setCwd(INFO.pluginDir); showView('explorer', true); } }, 'Open folder'),
+      h('button', { class: 'btn', onclick: () => location.reload() }, 'Reload window')),
+    ...(plugins.length ? plugins.map(p => h('div', { class: 'plug ' + p.status },
+      h('div', { class: 'plug-top' }, h('span', { class: 'plug-name' }, p.name), h('span', { class: 'plug-status' }, p.status),
+        h('label', { class: 'switch', title: 'Enable or disable — applies after reload' }, h('input', { type: 'checkbox', checked: p.enabled, onchange: e => togglePlugin(p, e.target.checked) }), h('span'))),
+      p.error ? h('div', { class: 'plug-err' }, p.error) : null,
+      h('div', { class: 'plug-links' }, h('a', { onclick: () => openFile(p.path) }, 'Edit source'))))
+      : [h('div', { class: 'empty' }, 'No plugins yet. Plugins are JavaScript files in ', h('code', {}, tilde(INFO.pluginDir)), '.')]),
+    h('details', { class: 'api-doc' }, h('summary', {}, 'Plugin API reference'), h('pre', {}, PLUGIN_DOC)));
+}
+function togglePlugin(p, enabled) {
+  const set = new Set(S.disabledPlugins || []);
+  enabled ? set.delete(p.name) : set.add(p.name);
+  p.enabled = enabled;
+  setSettings({ disabledPlugins: [...set] });
+  toast('Reload the window to apply (Ctrl+Shift+P → Reload Window)');
+}
+async function newPlugin() {
+  const name = await askInput('New plugin name', '', 'e.g. my-tools');
+  if (!name) return;
+  const slug = name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-|-$/g, '');
+  const path = join(INFO.pluginDir, slug + '.js');
+  try { await post('/api/fs', { op: 'newfile', path }); } catch (e) { toast(e.message, 'error'); return; }
+  await post('/api/file', { path, content: `// ${slug} — an ocode plugin. Reload the window after editing (Ctrl+Shift+P → Reload Window).\n// See the Plugins panel for the full API reference.\n\nocode.registerCommand({\n  id: '${slug}.hello',\n  label: ${JSON.stringify(name + ': Say Hello')},\n  run() {\n    ocode.toast('Hello from ${slug}!', 'ok');\n  },\n});\n` });
+  plugins.push({ name: slug, file: slug + '.js', path, enabled: true, status: 'new' });
+  renderPluginsView();
+  openFile(path);
+}
+
+// ── Built-in commands ─────────────────────────────────────────────────────────
+function registerBuiltins() {
+  const C = (id, label, run, keys, extra = {}) => registerCommand({ id, label, run, keys, ...extra });
+  const hasText = () => tabs.get(active)?.kind === 'text';
+  C('quickOpen', 'Go to File…', () => quickOpen(), 'Ctrl+P', { global: true });
+  C('palette', 'Show All Commands', palette, 'Ctrl+Shift+P', { global: true });
+  C('file.new', 'File: New File…', () => newFile(active ? dirname(active) : S.cwd), 'Ctrl+N');
+  C('file.newFolder', 'File: New Folder…', () => newFolder());
+  C('file.openFolder', 'File: Open Folder…', async () => { const p = await pickFolder(); if (p) setCwd(p); }, 'Ctrl+O', { global: true });
+  C('file.save', 'File: Save', () => saveTab(tabs.get(active), true), 'Ctrl+S');
+  C('file.saveAll', 'File: Save All', saveAll, 'Ctrl+Alt+S');
+  C('file.close', 'File: Close Tab', () => active && closeTab(active), 'Ctrl+W');
+  C('file.closeAll', 'File: Close All Tabs', async () => { for (const p of [...tabs.keys()]) await closeTab(p); });
+  C('file.nextTab', 'File: Next Tab', () => cycleTab(1), 'Ctrl+PageDown');
+  C('file.prevTab', 'File: Previous Tab', () => cycleTab(-1), 'Ctrl+PageUp');
+  C('file.rename', 'File: Rename Active File…', () => active && renamePath(active));
+  C('file.reveal', 'File: Reveal Active File in Explorer', () => { if (active) { showView('explorer', true); revealInTree(active); } });
+  C('file.copyPath', 'File: Copy Path of Active File', () => active && copyText(active));
+  C('view.sidebar', 'View: Toggle Sidebar', () => togglePanel('sidebar'), 'Ctrl+B', { global: true });
+  C('view.terminal', 'View: Toggle Terminal', () => togglePanel('term'), 'Ctrl+`', { global: true });
+  C('view.terminal2', 'View: Toggle Panel', () => togglePanel('term'), 'Ctrl+J', { global: true, hidden: true });
+  C('view.chat', 'View: Toggle Chat', () => togglePanel('chat'), 'Ctrl+Alt+B', { global: true });
+  C('view.explorer', 'View: Explorer', () => showView('explorer', true), 'Ctrl+Shift+E', { global: true });
+  C('view.search', 'View: Search in Folder', () => showView('search', true), 'Ctrl+Shift+F', { global: true });
+  C('view.plugins', 'View: Plugins', () => showView('plugins', true), 'Ctrl+Shift+X', { global: true });
+  C('view.settings', 'Preferences: Open Settings', () => showView('settings', true), 'Ctrl+,', { global: true });
+  C('view.zoomIn', 'View: Zoom In', () => setSettings({ fontSize: Math.min(40, S.fontSize + 1), terminalFontSize: Math.min(32, S.terminalFontSize + 1) }), 'Ctrl+=');
+  C('view.zoomOut', 'View: Zoom Out', () => setSettings({ fontSize: Math.max(8, S.fontSize - 1), terminalFontSize: Math.max(8, S.terminalFontSize - 1) }), 'Ctrl+-');
+  C('view.zoomReset', 'View: Reset Zoom', () => setSettings({ fontSize: 14, terminalFontSize: 13 }), 'Ctrl+0');
+  C('view.wordWrap', 'View: Toggle Word Wrap', () => setSettings({ wordWrap: S.wordWrap === 'off' ? 'on' : 'off' }), 'Alt+Z');
+  C('view.minimap', 'View: Toggle Minimap', () => setSettings({ minimap: !S.minimap }));
+  C('view.hidden', 'View: Toggle Hidden Files', () => setSettings({ showHidden: !S.showHidden }));
+  C('pref.theme', 'Preferences: Color Theme', pickTheme, 'Ctrl+Alt+T');
+  C('pref.settingsJson', 'Preferences: Open settings.json', () => openFile(INFO.settingsFile));
+  C('pref.pluginsFolder', 'Preferences: Open Plugins Folder', () => { setCwd(INFO.pluginDir); showView('explorer', true); });
+  C('dev.reload', 'Developer: Reload Window', () => location.reload());
+  C('editor.format', 'Editor: Format Document', () => editor.getAction('editor.action.formatDocument')?.run(), undefined, { when: hasText });
+  C('editor.gotoLine', 'Editor: Go to Line…', () => quickOpen(':'), 'Ctrl+G', { when: hasText });
+  C('editor.find', 'Editor: Find', () => editor.trigger('cmd', 'actions.find'), undefined, { when: hasText });
+  C('editor.replace', 'Editor: Replace', () => editor.trigger('cmd', 'editor.action.startFindReplaceAction'), undefined, { when: hasText });
+  C('editor.monacoCommands', 'Editor: Show Editor Commands', () => { editor.focus(); editor.trigger('cmd', 'editor.action.quickCommand'); }, 'F1', { when: hasText });
+  C('editor.language', 'Editor: Change Language Mode…', async () => {
+    const m = editor.getModel(); if (!m) return;
+    const id = await askPick('Select language mode', monaco.languages.getLanguages().map(l => ({ label: l.aliases?.[0] || l.id, detail: l.id, value: l.id })));
+    if (id) { monaco.editor.setModelLanguage(m, id); renderStatus(); }
+  });
+  C('editor.indentation', 'Editor: Change Indentation…', async () => {
+    const m = editor.getModel(); if (!m) return;
+    const v = await askPick('Indentation for this file', [
+      ...[2, 4, 8].map(n => ({ label: `Indent Using Spaces: ${n}`, value: { insertSpaces: true, tabSize: n } })),
+      ...[2, 4, 8].map(n => ({ label: `Indent Using Tabs: ${n}`, value: { insertSpaces: false, tabSize: n } })),
+      { label: 'Detect from Content', value: 'detect' },
+      { label: 'Convert Indentation to Spaces', value: 'toSpaces' }, { label: 'Convert Indentation to Tabs', value: 'toTabs' }]);
+    if (v === 'detect') m.detectIndentation(S.insertSpaces, S.tabSize);
+    else if (v === 'toSpaces') editor.trigger('cmd', 'editor.action.indentationToSpaces');
+    else if (v === 'toTabs') editor.trigger('cmd', 'editor.action.indentationToTabs');
+    else if (v) m.updateOptions(v);
+    renderStatus();
+  });
+  C('editor.toggleEol', 'Editor: Toggle Line Endings (LF/CRLF)', () => { const m = editor.getModel(); if (!m) return; m.setEOL(m.getEOL() === '\n' ? monaco.editor.EndOfLineSequence.CRLF : monaco.editor.EndOfLineSequence.LF); renderStatus(); });
+  C('run.file', 'Run: Run Active File', () => runFile(), 'F5', { global: true });
+  C('terminal.new', 'Terminal: Restart Shell', () => { term.reset(); connectTerm(); setPanel('term', true); term.focus(); });
+  C('terminal.clear', 'Terminal: Clear', () => term.clear());
+  C('terminal.focus', 'Terminal: Focus', () => { setPanel('term', true); term.focus(); });
+  C('terminal.maximize', 'Terminal: Toggle Maximized Panel', () => { setPanel('term', true); $('#center').classList.toggle('term-max'); setTimeout(fitTerm, 0); });
+  C('terminal.runSelection', 'Terminal: Run Selected Text', () => { const m = editor.getModel(); const s = m && m.getValueInRange(editor.getSelection()); if (s) runInTerminal(s); else toast('Select some text first', 'warn'); });
+  C('ai.askSelection', 'ocode: Add Selection to Chat', () => { const s = selectionSnippet(); setPanel('chat', true); if (s) insertIntoChat(s + '\n'); else $('#chat-input').focus(); }, 'Ctrl+L');
+  C('ai.explainSelection', 'ocode: Explain Selection or File', () => { const s = selectionSnippet(); if (s) sendChat(`Explain this code:\n${s}`); else if (active) sendChat(`Explain what ${rel(active)} does.`); else toast('Open a file first', 'warn'); });
+  C('ai.fixSelection', 'ocode: Fix Selection or File', () => { const s = selectionSnippet(); if (s) sendChat(`Find and fix bugs in this code, editing the file directly:\n${s}`); else if (active) sendChat(`Find and fix bugs in ${rel(active)}.`); else toast('Open a file first', 'warn'); });
+  C('ai.inlineEdit', 'ocode: Edit with AI (inline)…', () => aiEdit(), 'Ctrl+K', { when: hasText });
+  C('ai.fixFile', 'ocode: Fix All Problems in File', aiFixFile);
+  C('ai.toggleComplete', 'ocode: Toggle AI Autocomplete', () => { setSettings({ aiComplete: S.aiComplete === false }); toast(`AI autocomplete ${S.aiComplete ? 'on' : 'off'}`, 'ok', 1500); });
+  C('ai.triggerComplete', 'ocode: Suggest Code Here', () => { editor.focus(); editor.trigger('ocode', 'editor.action.inlineSuggest.trigger', {}); }, 'Alt+\\', { when: hasText });
+  C('ai.completeModel', 'ocode: Choose Autocomplete Model…', pickCompleteModel);
+  C('ai.pullCompleteModel', 'ocode: Download Autocomplete Model', pullCompleteModel);
+  C('explorer.sort', 'Explorer: Sort Files By…', async () => {
+    const v = await askPick('Sort files by', Object.entries(SORTS).map(([k, [l]]) => ({ label: l, detail: k === (S.sortOrder || 'name') ? 'current' : '', value: k })));
+    if (v) setSettings({ sortOrder: v });
+  });
+  C('view.closeSide', 'View: Close Side Panel', closeSidePanel);
+  C('ai.newChat', 'ocode: New Chat', newChat);
+  C('ai.compact', 'ocode: Compact Conversation', compactChat);
+  C('ai.stop', 'ocode: Stop Generating', () => abortCtl?.abort());
+  C('ai.effort', 'ocode: Set Effort…', async () => { const v = await askPick('Effort level', Object.entries(EFFORT_PROMPTS).map(([k, d]) => ({ label: k, detail: d, value: k }))); if (v) setSettings({ effort: v }); });
+  C('ai.model', 'ocode: Switch Model…', async () => {
+    await loadModels();
+    const v = await askPick('Model', MODELS.map(m => ({ label: shortModel(m), detail: m === S.model ? 'current' : m.includes('/') ? m.split('/').slice(0, -1).join('/') : '', value: m })));
+    if (v) setSettings({ model: v });
+  });
+  C('help.keys', 'Help: Keyboard Shortcuts', () => { setPanel('chat', true); slashHelp(); });
+}
+function cycleTab(d) { const keys = [...tabs.keys()]; if (!keys.length) return; const i = keys.indexOf(active); activate(keys[(i + d + keys.length) % keys.length]); }
+
+async function loadModels() {
+  try { MODELS = await api('/api/models'); } catch { MODELS = []; }
+  if (S.model && !MODELS.includes(S.model) && MODELS.length) { /* keep user's choice; it may be pulled later */ }
+}
+
+// ── Wiring ────────────────────────────────────────────────────────────────────
+function wireUI() {
+  $('#logo').innerHTML = LOGO + '<span>ocode</span>';
+  $('#tb-search').innerHTML = `${icon('search')}<span>Search files, run commands</span><kbd>Ctrl P</kbd>`;
+  $('#tb-search').onclick = () => quickOpen();
+  $('#tb-folder').onclick = () => runCommand('file.openFolder');
+  $('#tb-effort').onclick = () => runCommand('ai.effort');
+  $('#tb-model').onclick = () => runCommand('ai.model');
+  $('#tb-sidebar').innerHTML = icon('sidebar'); $('#tb-sidebar').onclick = () => togglePanel('sidebar');
+  $('#tb-term').innerHTML = icon('panelBottom'); $('#tb-term').onclick = () => togglePanel('term');
+  $('#tb-chat').innerHTML = icon('panelRight'); $('#tb-chat').onclick = () => togglePanel('chat');
+  const abIcons = { explorer: 'files', search: 'search', plugins: 'blocks', settings: 'sliders' };
+  for (const b of $$('.ab[data-view]')) { b.innerHTML = icon(abIcons[b.dataset.view]); b.onclick = () => showView(b.dataset.view); }
+  $('#ab-chat').innerHTML = icon('chat'); $('#ab-chat').onclick = () => togglePanel('chat');
+  const acts = {
+    newFile: ['filePlus', () => newFile()], newFolder: ['folderPlus', () => newFolder()], upFolder: ['up', () => setCwd(dirname(S.cwd))],
+    refresh: ['refresh', () => { invalidateFileIndex(); refreshTree(); refreshGit(); }], collapse: ['collapse', () => { expanded.clear(); refreshTree(); }], sort: ['sort', sortMenu],
+    runFile: ['play', () => runFile()], termClear: ['ban', () => term.clear()], termRestart: ['refresh', () => runCommand('terminal.new')],
+    termMax: ['maximize', () => runCommand('terminal.maximize')], termHide: ['x', () => setPanel('term', false)],
+    newChat: ['plus', newChat], chatHide: ['x', () => setPanel('chat', false)],
+  };
+  for (const b of $$('[data-act]')) { const [ic, fn] = acts[b.dataset.act]; b.innerHTML = icon(ic, ic === 'play' ? 'fill' : ''); b.onclick = fn; }
+  $('#side-close').innerHTML = icon('x'); $('#side-close').onclick = closeSidePanel;
+  $('#review-logo').innerHTML = LOGO;
+  $('#tree').addEventListener('contextmenu', e => { if (!e.target.closest('.row')) { e.preventDefault(); treeMenu(e, null, null); } });
+  $('#explorer-title').onclick = () => runCommand('file.openFolder');
+
+  dragSplit($('#split-sidebar'), $('#sidebar'), 'x', 1, 'sidebarWidth', 170, () => innerWidth * 0.45);
+  dragSplit($('#split-chat'), $('#chat'), 'x', -1, 'chatWidth', 300, () => innerWidth * 0.6);
+  dragSplit($('#term-split'), $('#term-panel'), 'y', -1, 'termHeight', 90, () => innerHeight * 0.8);
+
+  $('#search-input').addEventListener('input', runSearch);
+  $('#search-input').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+  for (const [id, key] of [['#search-case', 'case'], ['#search-regex', 'regex']]) $(id).onclick = () => { search[key] = !search[key]; $(id).classList.toggle('on', search[key]); runSearch(); };
+
+  const input = $('#chat-input');
+  input.addEventListener('input', () => { autosizeInput(); slashSel = 0; renderSlash(); });
+  input.addEventListener('blur', () => setTimeout(() => $('#slash').classList.remove('open'), 120));
+  input.addEventListener('keydown', e => {
+    const open = $('#slash').classList.contains('open');
+    if (open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); const n = slashMatches(input.value).length; slashSel = (slashSel + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; renderSlash(); return; }
+    if (open && (e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) { e.preventDefault(); pickSlash(slashMatches(input.value)[slashSel]); return; }
+    if (open && e.key === 'Escape') { $('#slash').classList.remove('open'); return; }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const v = input.value; input.value = ''; autosizeInput(); sendChat(v); }
+    if (e.key === 'Escape' && busy) abortCtl?.abort();
+  });
+  $('#send-btn').onclick = () => { if (busy) { abortCtl?.abort(); return; } const v = input.value; input.value = ''; autosizeInput(); sendChat(v); };
+  $('#ci-effort').onclick = () => runCommand('ai.effort');
+  $('#ci-file').onclick = () => runCommand('ai.askSelection');
+  $('#messages').addEventListener('click', e => {
+    const a = e.target.closest('a');
+    if (a) { e.preventDefault(); const href = a.getAttribute('href') || ''; if (/^https?:\/\//.test(href)) post('/api/open-external', { url: href }).catch(err => toast(err.message, 'error')); else if (href && !href.startsWith('#')) openFile(absPath(href.replace(/^file:\/\//, ''))); return; }
+    const c = e.target.closest('code.path-link');
+    if (c) { const [, p, ln] = c.textContent.trim().match(/^(.*?)(?::(\d+))?$/); openFile(absPath(p), ln ? { line: +ln } : {}); }
+  });
+
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => e.preventDefault());
+  window.addEventListener('focus', async () => {
+    refreshTreeSoon(); invalidateFileIndex();
+    for (const p of tabs.keys()) await reloadIfOpen(p);
+  });
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+async function boot() {
+  [S, INFO] = await Promise.all([api('/api/settings'), api('/api/info')]);
+  await new Promise((res, rej) => { require.config({ paths: { vs: '/static/vendor/monaco/vs' } }); require(['vs/editor/editor.main'], res, rej); });
+  for (const [id, t] of Object.entries(THEMES)) monaco.editor.defineTheme('t-' + id, monacoTheme(t));
+  applyTheme(S.theme);
+  createEditor();
+  registerAiProviders();
+  buildStatusbar();
+  checkCompleteStatus();
+  setInterval(() => { if (S.aiComplete !== false && (!AIC.status?.online || !AIC.status?.hasModel)) checkCompleteStatus(); }, 20000);
+  wireUI();
+  registerBuiltins();
+  applyLayout();
+  setBusy(false);
+  renderChatEmpty();
+  let start = S.cwd || INFO.home;
+  try { await api('/api/files?path=' + enc(start)); } catch { start = INFO.home; }
+  S.cwd = start;
+  selectView('explorer');
+  await initTerm();
+  await setCwd(start, { noSave: true });
+  await loadPlugins();
+  applyTheme(S.theme);
+  const restore = S.openTabs || [], restoreActive = S.activeTab;
+  for (const p of restore) await openFile(p, { silent: true, noFocus: true });
+  activate(restoreActive && tabs.has(restoreActive) ? restoreActive : [...tabs.keys()].pop() || null, { noFocus: true });
+  loadModels().then(renderChrome);
+  renderChrome();
+  emit('ready');
+  (editor.getModel() ? editor : $('#chat-input')).focus();
+}
+boot().catch(e => { console.error(e); document.body.insertAdjacentHTML('beforeend', `<div style="position:fixed;inset:auto 20px 40px;padding:14px;background:#401a1a;color:#fbb;border-radius:8px;font:13px monospace;z-index:9999">ocode failed to start: ${esc(e.message)}</div>`); });
+</script>
+</body>
+</html>
