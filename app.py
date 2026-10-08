@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-import fcntl, json, os, pty, secrets, select, signal, socket, struct, subprocess, sys, termios, threading, time
+import difflib, fcntl, hashlib, json, os, pty, re, secrets, select, shutil, signal, socket, struct, subprocess, sys, termios, threading, time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory, send_file, Response, stream_with_context, abort
@@ -10,6 +11,9 @@ HOME = str(Path.home())
 CONFIG_DIR = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'ocode'
 PLUGIN_DIR = CONFIG_DIR / 'plugins'
 SETTINGS_FILE = CONFIG_DIR / 'settings.json'
+HISTORY_DIR = Path(os.environ.get('XDG_DATA_HOME') or Path.home() / '.local/share') / 'ocode' / 'history'
+HISTORY_KEEP = 60
+HISTORY_MAX_BYTES = 1_000_000
 MODEL = "hf.co/mradermacher/Qwen2.5-Coder-32B-Instruct-Uncensored-GGUF:Q4_K_M"
 OLLAMA = "http://localhost:11434"
 TOKEN = os.environ.get('OCODE_TOKEN') or secrets.token_urlsafe(24)
@@ -41,6 +45,12 @@ DEFAULT_SETTINGS = {
     "completeHost": "http://127.0.0.1:11435",
     "completeModel": "qwen2.5-coder:3b-base",
     "completeDelay": 250,
+    "shareActiveFile": True,
+    "gitBlame": True,
+    "gitGutter": True,
+    "gitName": "",
+    "gitEmail": "",
+    "recentFolders": [],
     "terminalFontSize": 13,
     "effort": "medium",
     "model": MODEL,
@@ -106,12 +116,33 @@ def info():
 
 
 # ── Plugins ───────────────────────────────────────────────────────────────────
+def readme_summary(path):
+    """First plain paragraph line of a README, without Markdown markup."""
+    for line in path.read_text(errors='replace').splitlines():
+        s = line.strip()
+        if s and not s.startswith(('#', '!', '|', '`', '<', '-', '*', '>', '[')):
+            return re.sub(r'\[([^\]]+)\]\([^)]*\)|[*_`]', lambda m: m.group(1) or '', s)[:220]
+    return ''
+
 @app.route('/api/plugins')
 def list_plugins():
+    # A plugin is either a folder with index.js (and usually README.md), or a single name.js (optionally name.md).
     PLUGIN_DIR.mkdir(parents=True, exist_ok=True)
     disabled = set(load_settings().get('disabledPlugins', []))
-    return jsonify([{'name': p.stem, 'file': p.name, 'path': str(p), 'enabled': p.stem not in disabled}
-                    for p in sorted(PLUGIN_DIR.glob('*.js'))])
+    out = []
+    for p in sorted(PLUGIN_DIR.iterdir(), key=lambda x: x.name.lower()):
+        if p.name.startswith('.'):
+            continue
+        if p.is_dir() and (p / 'index.js').is_file():
+            name, file, readme = p.name, f'{p.name}/index.js', p / 'README.md'
+        elif p.is_file() and p.suffix == '.js':
+            name, file, readme = p.stem, p.name, p.with_suffix('.md')
+        else:
+            continue
+        has_readme = readme.is_file()
+        out.append({'name': name, 'file': file, 'path': str(PLUGIN_DIR / file), 'enabled': name not in disabled,
+                    'readme': str(readme) if has_readme else '', 'description': readme_summary(readme) if has_readme else ''})
+    return jsonify(out)
 
 @app.route('/plugins/<path:name>')
 def serve_plugin(name):
@@ -123,9 +154,12 @@ def serve_plugin(name):
 def get_models():
     try:
         with urllib.request.urlopen(f"{OLLAMA}/api/tags", timeout=5) as r:
-            return jsonify([m["name"] for m in json.loads(r.read()).get("models", [])])
+            models = json.loads(r.read()).get("models", [])
+        return jsonify([{'name': m['name'], 'size': m.get('size', 0),
+                         **{k: (m.get('details') or {}).get(k, '') for k in ('parameter_size', 'quantization_level', 'family')}}
+                        for m in models])
     except Exception:
-        return jsonify([MODEL])
+        return jsonify([{'name': load_settings().get('model') or MODEL}])
 
 
 # ── Files ─────────────────────────────────────────────────────────────────────
@@ -167,6 +201,7 @@ def write_file_ep():
     try:
         p = Path(data['path'])
         p.parent.mkdir(parents=True, exist_ok=True)
+        snapshot(p, data.get('source') or 'save')
         p.write_text(data.get('content', ''))
         return jsonify({'success': True})
     except Exception as e:
@@ -178,6 +213,72 @@ def raw_file():
     if not p.is_file():
         abort(404)
     return send_file(p)
+
+# ── Local history: a snapshot of a file's previous content before it is overwritten ──
+def history_dir(p):
+    return HISTORY_DIR / hashlib.sha1(str(Path(p).resolve()).encode()).hexdigest()[:20]
+
+def snapshot(p, label='save'):
+    p = Path(p)
+    try:
+        if not p.is_file() or p.stat().st_size > HISTORY_MAX_BYTES:
+            return
+        old = p.read_bytes()
+        if b'\0' in old[:8192]:
+            return
+        d = history_dir(p)
+        snaps = sorted(d.glob('*.snap')) if d.is_dir() else []
+        if snaps:
+            if snaps[-1].read_bytes() == old:
+                return
+            # Auto-save writes every second; keep at most one plain-save snapshot every two minutes.
+            if label == 'save' and time.time() - int(snaps[-1].name.split('-')[0]) / 1000 < 120:
+                return
+        d.mkdir(parents=True, exist_ok=True)
+        (d / 'path.txt').write_text(str(p.resolve()))
+        (d / f'{int(time.time() * 1000)}-{re.sub(r"[^a-z]", "", label) or "save"}.snap').write_bytes(old)
+        for s in snaps[:max(0, len(snaps) + 1 - HISTORY_KEEP)]:
+            s.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+@app.route('/api/history')
+def history_list():
+    d = history_dir(request.args.get('path', ''))
+    out = []
+    for s in sorted(d.glob('*.snap'), reverse=True) if d.is_dir() else []:
+        ts, _, label = s.stem.partition('-')
+        out.append({'id': s.name, 'time': int(ts) / 1000, 'label': label or 'save', 'size': s.stat().st_size})
+    return jsonify(out)
+
+@app.route('/api/history/snap', methods=['POST'])
+def history_snap():
+    d = request.json or {}
+    for p in d.get('paths') or []:
+        snapshot(p, d.get('label') or 'save')
+    return jsonify({'success': True})
+
+@app.route('/api/history/get')
+def history_get():
+    sid = request.args.get('id', '')
+    f = history_dir(request.args.get('path', '')) / sid
+    if '/' in sid or not f.is_file():
+        abort(404)
+    return jsonify({'content': f.read_bytes().decode('utf-8', errors='replace')})
+
+def move_to_home_trash(p):
+    """Fallback for mounts gio won't trash on (e.g. /tmp): follow the freedesktop trash spec in the home trash."""
+    if not p.exists() and not p.is_symlink():
+        raise FileNotFoundError(f'{p} does not exist')
+    trash = Path(os.environ.get('XDG_DATA_HOME') or Path.home() / '.local/share') / 'Trash'
+    (trash / 'files').mkdir(parents=True, exist_ok=True)
+    (trash / 'info').mkdir(parents=True, exist_ok=True)
+    name, n = p.name, 1
+    while (trash / 'files' / name).exists() or (trash / 'info' / f'{name}.trashinfo').exists():
+        name, n = f'{p.stem}.{n}{p.suffix}', n + 1
+    (trash / 'info' / f'{name}.trashinfo').write_text(
+        f"[Trash Info]\nPath={urllib.parse.quote(str(p.resolve()))}\nDeletionDate={time.strftime('%Y-%m-%dT%H:%M:%S')}\n")
+    shutil.move(str(p), str(trash / 'files' / name))
 
 @app.route('/api/fs', methods=['POST'])
 def fs_op():
@@ -200,7 +301,7 @@ def fs_op():
         elif op == 'trash':
             r = subprocess.run(['gio', 'trash', str(p)], capture_output=True, text=True)
             if r.returncode:
-                return jsonify({'error': r.stderr.strip() or 'gio trash failed'}), 400
+                move_to_home_trash(p)
         else:
             return jsonify({'error': 'unknown op'}), 400
         return jsonify({'success': True})
@@ -274,6 +375,222 @@ def git_info():
         return jsonify({'branch': branch, 'root': root, 'changes': len(files), 'files': files})
     except Exception:
         return jsonify({})
+
+
+# ── Git (source control) ──────────────────────────────────────────────────────
+GIT_SAFE = {'add', 'restore', 'reset', 'commit', 'checkout', 'switch', 'branch', 'push', 'pull', 'fetch',
+            'stash', 'init', 'rm', 'merge', 'tag', 'revert', 'diff'}
+GIT_NETWORK = {'push', 'pull', 'fetch'}
+
+def git_run(cwd, *args, input=None, timeout=30):
+    env = {**os.environ, 'GIT_TERMINAL_PROMPT': '0', 'GIT_OPTIONAL_LOCKS': '0'}
+    return subprocess.run(['git', '-C', cwd, *args], capture_output=True, text=True, input=input, timeout=timeout, env=env)
+
+def git_root(path):
+    d = path if os.path.isdir(path) else os.path.dirname(path)
+    if not os.path.isdir(d):
+        return None
+    r = git_run(d, 'rev-parse', '--show-toplevel')
+    return r.stdout.strip() if r.returncode == 0 else None
+
+@app.route('/api/git/status')
+def git_status():
+    root = git_root(request.args.get('path', CWD[0]))
+    if not root:
+        return jsonify({'repo': False})
+    r = git_run(root, 'status', '--porcelain=v2', '--branch', '-uall', '-z')
+    info = {'repo': True, 'root': root, 'branch': '', 'upstream': '', 'ahead': 0, 'behind': 0, 'hasCommits': True, 'files': []}
+    parts, i = r.stdout.split('\0'), 0
+    while i < len(parts):
+        e = parts[i]
+        i += 1
+        if not e:
+            continue
+        if e.startswith('# branch.head '):
+            info['branch'] = e[14:]
+        elif e.startswith('# branch.oid '):
+            info['hasCommits'] = e[13:] != '(initial)'
+        elif e.startswith('# branch.upstream '):
+            info['upstream'] = e[18:]
+        elif e.startswith('# branch.ab '):
+            a, b = e[12:].split()
+            info['ahead'], info['behind'] = int(a[1:]), int(b[1:])
+        elif e[0] in '12u':
+            fields = e.split(' ')
+            skip = {'1': 8, '2': 9, 'u': 10}[e[0]]
+            rel = ' '.join(fields[skip:])
+            if e[0] == '2':
+                i += 1  # the original path of a rename follows as its own entry
+            info['files'].append({'path': os.path.join(root, rel), 'rel': rel, 'x': fields[1][0], 'y': fields[1][1],
+                                  'conflict': e[0] == 'u'})
+        elif e[0] == '?':
+            info['files'].append({'path': os.path.join(root, e[2:]), 'rel': e[2:], 'x': '?', 'y': '?', 'untracked': True})
+    info['stashes'] = len([l for l in git_run(root, 'stash', 'list').stdout.splitlines() if l])
+    return jsonify(info)
+
+@app.route('/api/git/cmd', methods=['POST'])
+def git_cmd():
+    d = request.json or {}
+    args = [str(a) for a in d.get('args') or []]
+    cwd = d.get('cwd') or CWD[0]
+    if not args or args[0] not in GIT_SAFE:
+        return jsonify({'error': 'That git command is not allowed here'}), 400
+    pre = []
+    if args[0] == 'commit':
+        s = load_settings()
+        if s.get('gitName'):
+            pre += ['-c', f"user.name={s['gitName']}"]
+        if s.get('gitEmail'):
+            pre += ['-c', f"user.email={s['gitEmail']}"]
+    if args[0] in GIT_NETWORK and not git_run(cwd, 'config', 'credential.helper').stdout.strip() and shutil.which('gh'):
+        # No credential helper configured: borrow the GitHub CLI's login for this one command.
+        pre += ['-c', 'credential.helper=', '-c', f"credential.helper=!{shutil.which('gh')} auth git-credential"]
+    try:
+        r = git_run(cwd, *pre, *args, input=d.get('input'), timeout=180 if args[0] in GIT_NETWORK else 60)
+    except subprocess.TimeoutExpired:
+        return jsonify({'code': -1, 'stdout': '', 'stderr': f'git {args[0]} timed out'})
+    return jsonify({'code': r.returncode, 'stdout': r.stdout, 'stderr': r.stderr})
+
+@app.route('/api/git/show')
+def git_show():
+    path, ref = request.args.get('path', ''), request.args.get('ref', 'HEAD')
+    root = git_root(path)
+    if not root:
+        return jsonify({'exists': False, 'content': ''})
+    rel = request.args.get('rel') or os.path.relpath(path, root)
+    r = git_run(root, 'show', f'{ref}:{rel}')
+    if r.returncode:
+        return jsonify({'exists': False, 'content': ''})
+    return jsonify({'exists': True, 'content': r.stdout, 'binary': '\0' in r.stdout[:8192]})
+
+@app.route('/api/git/linediff', methods=['POST'])
+def git_linediff():
+    d = request.json or {}
+    path = d.get('path', '')
+    root = git_root(path)
+    if not root:
+        return jsonify({'repo': False, 'changes': []})
+    base = git_run(root, 'show', f':{os.path.relpath(path, root)}')
+    if base.returncode:
+        return jsonify({'repo': True, 'tracked': False, 'changes': []})
+    old, new = base.stdout.splitlines(), (d.get('content') or '').splitlines()
+    if max(len(old), len(new)) > 8000:
+        return jsonify({'repo': True, 'tracked': True, 'changes': []})
+    changes = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, old, new, autojunk=False).get_opcodes():
+        if tag == 'insert':
+            changes.append({'type': 'add', 'start': j1 + 1, 'end': j2})
+        elif tag == 'replace':
+            # A replaced block that grew: the first lines changed, the rest are new.
+            mod_end = j1 + min(i2 - i1, j2 - j1)
+            changes.append({'type': 'mod', 'start': j1 + 1, 'end': max(mod_end, j1 + 1)})
+            if j2 > mod_end:
+                changes.append({'type': 'add', 'start': mod_end + 1, 'end': j2})
+        elif tag == 'delete':
+            changes.append({'type': 'del', 'start': max(j1, 1), 'end': max(j1, 1)})
+    return jsonify({'repo': True, 'tracked': True, 'changes': changes})
+
+@app.route('/api/git/blame', methods=['POST'])
+def git_blame():
+    d = request.json or {}
+    path, line = d.get('path', ''), int(d.get('line') or 1)
+    root = git_root(path)
+    if not root:
+        return jsonify({})
+    rel = os.path.relpath(path, root)
+    r = git_run(root, 'blame', '--porcelain', '-L', f'{line},{line}', '--contents', '-', '--', rel, input=d.get('content', ''))
+    if r.returncode or not r.stdout:
+        return jsonify({})
+    lines = r.stdout.splitlines()
+    sha, meta = lines[0].split()[0], {}
+    for l in lines[1:]:
+        if l.startswith('\t'):
+            break
+        k, _, v = l.partition(' ')
+        meta[k] = v
+    me = load_settings().get('gitEmail') or git_run(root, 'config', 'user.email').stdout.strip()
+    return jsonify({'sha': sha, 'author': meta.get('author', ''), 'time': int(meta.get('author-time') or 0),
+                    'summary': meta.get('summary', ''), 'uncommitted': set(sha) == {'0'},
+                    'me': bool(me) and meta.get('author-mail', '').strip('<>') == me})
+
+@app.route('/api/git/log')
+def git_log():
+    path = request.args.get('path', CWD[0])
+    root = git_root(path)
+    if not root:
+        return jsonify([])
+    args = ['log', f"-n{min(int(request.args.get('n', 60)), 500)}", '--format=%H%x1f%h%x1f%an%x1f%at%x1f%s']
+    if os.path.isfile(path):
+        args += ['--follow', '--name-only', '--', os.path.relpath(path, root)]
+    out = []
+    for l in git_run(root, *args).stdout.splitlines():
+        p = l.split('\x1f')
+        if len(p) == 5:
+            out.append({'sha': p[0], 'short': p[1], 'author': p[2], 'time': int(p[3]), 'summary': p[4], 'rel': ''})
+        elif l.strip() and out:
+            out[-1]['rel'] = l.strip()
+    return jsonify(out)
+
+@app.route('/api/git/branches')
+def git_branches():
+    root = git_root(request.args.get('path', CWD[0]))
+    if not root:
+        return jsonify({'local': [], 'remote': []})
+    local = []
+    for l in git_run(root, 'branch', '--format=%(HEAD)%1f%(refname:short)%1f%(upstream:short)%1f%(committerdate:unix)').stdout.splitlines():
+        p = l.split('\x1f')
+        if len(p) == 4:
+            local.append({'name': p[1], 'current': p[0] == '*', 'upstream': p[2], 'time': int(p[3] or 0)})
+    remote = [l.strip() for l in git_run(root, 'branch', '-r', '--format=%(refname:short)').stdout.splitlines()
+              if l.strip() and not l.strip().endswith('/HEAD') and '/' in l]
+    return jsonify({'local': local, 'remote': remote})
+
+
+# ── Tasks (npm scripts, make targets, cargo, …) ───────────────────────────────
+@app.route('/api/tasks')
+def list_tasks():
+    root = Path(request.args.get('path', CWD[0]))
+    out = []
+    def add(label, command, detail='', source=''):
+        out.append({'label': label, 'command': command, 'detail': detail, 'source': source})
+    custom = root / '.ocode' / 'tasks.json'
+    if custom.is_file():
+        try:
+            for t in json.loads(custom.read_text()):
+                add(t['label'], t['command'], t.get('detail', ''), 'tasks.json')
+        except Exception as e:
+            add('tasks.json has an error', 'true', str(e), 'tasks.json')
+    pj = root / 'package.json'
+    if pj.is_file():
+        try:
+            scripts = json.loads(pj.read_text()).get('scripts') or {}
+        except Exception:
+            scripts = {}
+        pm = ('pnpm' if (root / 'pnpm-lock.yaml').exists() else 'yarn' if (root / 'yarn.lock').exists()
+              else 'bun' if (root / 'bun.lockb').exists() or (root / 'bun.lock').exists() else 'npm')
+        for name, cmd in scripts.items():
+            add(f'{pm}: {name}', f'{pm} run {name}', cmd, pm)
+        add(f'{pm}: install', f'{pm} install', 'Install dependencies', pm)
+    for mk in ('Makefile', 'makefile', 'GNUmakefile'):
+        if (root / mk).is_file():
+            seen = set()
+            for m in re.finditer(r'^([A-Za-z0-9][\w.\-/]*)\s*:(?!=)', (root / mk).read_text(errors='replace'), re.M):
+                if m.group(1) not in seen:
+                    seen.add(m.group(1))
+                    add(f'make: {m.group(1)}', f'make {m.group(1)}', mk, 'make')
+            break
+    if (root / 'Cargo.toml').is_file():
+        for c in ('build', 'run', 'test', 'check', 'clippy'):
+            add(f'cargo: {c}', f'cargo {c}', '', 'cargo')
+    if (root / 'go.mod').is_file():
+        add('go: build', 'go build ./...', '', 'go'); add('go: test', 'go test ./...', '', 'go'); add('go: run', 'go run .', '', 'go')
+    if (root / 'CMakeLists.txt').is_file():
+        add('cmake: build', 'cmake -S . -B build && cmake --build build', '', 'cmake')
+    if any((root / f).exists() for f in ('pyproject.toml', 'setup.py', 'pytest.ini', 'tests', 'requirements.txt')):
+        add('python: pytest', 'python3 -m pytest', '', 'python')
+        if (root / 'requirements.txt').is_file():
+            add('python: install requirements', 'python3 -m pip install -r requirements.txt', '', 'python')
+    return jsonify(out)
 
 
 @app.route('/api/exec', methods=['POST'])
@@ -373,6 +690,24 @@ def complete_pull():
         return f"{o.get('status', '')}\n"
     return text_stream(ollama_stream(complete_host(s), '/api/pull', {'model': s.get('completeModel')}, pick))
 
+_model_caps = {}
+
+def model_caps(model):
+    if model not in _model_caps:
+        try:
+            req = urllib.request.Request(f"{OLLAMA}/api/show", data=json.dumps({'model': model}).encode(),
+                                         headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req, timeout=5) as r:
+                _model_caps[model] = set(json.loads(r.read()).get('capabilities') or [])
+        except Exception:
+            return set()
+    return _model_caps[model]
+
+def apply_think(payload, d):
+    # Ollama rejects `think` for models that can't think, so only send it when supported.
+    if 'think' in d and 'thinking' in model_caps(payload['model']):
+        payload['think'] = bool(d['think'])
+
 @app.route('/api/ai', methods=['POST'])
 def ai_oneshot():
     d = request.json or {}
@@ -382,6 +717,9 @@ def ai_oneshot():
         msgs = [{'role': 'system', 'content': d['system']}] + msgs
     opts = {'temperature': d.get('temperature', 0.2), 'num_predict': int(d.get('maxTokens') or 2048)}
     payload = {'model': model, 'messages': msgs, 'options': opts}
+    if d.get('format'):
+        payload['format'] = d['format']
+    apply_think(payload, d)
     return text_stream(ollama_stream(OLLAMA, '/api/chat', payload, lambda o: o.get('message', {}).get('content', '')))
 
 
@@ -411,6 +749,7 @@ def run_tool(name, args):
         if name in ("write_file", "create_file"):
             p = resolve(args["path"])
             p.parent.mkdir(parents=True, exist_ok=True)
+            snapshot(p, 'agent')
             p.write_text(args.get("content", ""))
             return f"Written: {p}"
         if name == "read_file":
@@ -424,6 +763,7 @@ def run_tool(name, args):
             old = args.get("old_string", "")
             if old not in orig:
                 return "Error: old_string not found"
+            snapshot(p, 'agent')
             p.write_text(orig.replace(old, args.get("new_string", ""), 1))
             return f"Edited: {p}"
         if name == "list_files":
@@ -469,7 +809,9 @@ def chat():
 
     def generate():
         for _ in range(25):
-            payload = json.dumps({"model": model, "messages": full_messages, "tools": TOOLS, "stream": False}).encode()
+            body = {"model": model, "messages": full_messages, "tools": TOOLS, "stream": False}
+            apply_think(body, data)
+            payload = json.dumps(body).encode()
             req = urllib.request.Request(f"{OLLAMA}/api/chat", data=payload, headers={"Content-Type": "application/json"})
             try:
                 with urllib.request.urlopen(req, timeout=600) as resp:

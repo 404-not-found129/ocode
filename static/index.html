@@ -45,7 +45,6 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 .logo svg{width:18px;height:18px;color:var(--accent)}
 .pill{display:flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:13px;background:var(--bg2);border:1px solid var(--border);color:var(--fg2);font-size:12px;cursor:pointer;max-width:340px;white-space:nowrap}
 .pill:hover{color:var(--fg0);background:var(--bg3)}
-.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
 .pill span{overflow:hidden;text-overflow:ellipsis}
 .pill .ic{width:14px;height:14px}
 #tb-search{flex:0 1 420px;margin:0 auto;justify-content:center;max-width:none;border-radius:var(--r-sm)}
@@ -55,9 +54,13 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 .icon-btn:hover{background:var(--bg3);color:var(--fg0)}
 .icon-btn.on{color:var(--fg0)}
 .icon-btn.off{color:var(--fg3)}
-.effort{font-size:10.5px;font-weight:650;letter-spacing:.6px;text-transform:uppercase;padding:2px 9px;border-radius:10px;border:1px solid currentColor;cursor:pointer;opacity:.9}
-.effort:hover{opacity:1}
-.effort.low{color:var(--fg2)}.effort.medium{color:var(--accent)}.effort.high{color:var(--green)}.effort.max{color:var(--purple)}
+.icon-btn,.pill,.ab,.chip-btn,.btn,.tclose{transition:background .12s,color .12s,transform .08s}
+.icon-btn:active,.pill:active,.chip-btn:active,.btn:active{transform:scale(.96)}
+#tb-toggles{display:flex;align-items:center;gap:2px;padding:2px;border-radius:8px;background:var(--bg2);border:1px solid var(--border)}
+#tb-toggles .icon-btn{width:26px;height:24px;border-radius:6px}
+#tb-toggles .icon-btn:not(.off){background:var(--bg4);color:var(--fg0)}
+.effort-ic{width:14px;height:14px}
+.effort-low{color:var(--fg2)}.effort-medium{color:var(--accent)}.effort-high{color:var(--green)}.effort-max{color:var(--purple)}
 
 #workspace{flex:1;display:flex;min-height:0}
 
@@ -247,10 +250,20 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 #input-box:focus-within{border-color:color-mix(in srgb,var(--accent) 60%,var(--border));box-shadow:0 0 0 3px var(--accent-dim)}
 #chat-input{display:block;width:100%;background:none;border:none;outline:none;resize:none;padding:11px 14px 4px;color:var(--fg0);min-height:46px;max-height:240px;line-height:1.5}
 #chat-input::placeholder{color:var(--fg3)}
-.input-row{display:flex;align-items:center;gap:6px;padding:4px 6px 6px 10px}
-.input-row .hint{flex:1;font-size:11px;color:var(--fg3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.mini-pill{font-size:11px;color:var(--fg2);padding:3px 8px;border-radius:10px;background:var(--bg3);cursor:pointer;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
-.mini-pill:hover{color:var(--fg0)}
+.input-row{display:flex;align-items:center;gap:2px;padding:2px 6px 6px 6px;min-width:0}
+.input-row .spacer{min-width:4px}
+.chip-btn{display:flex;align-items:center;gap:5px;height:26px;padding:0 8px;border-radius:7px;font-size:12px;color:var(--fg2);white-space:nowrap;min-width:0;max-width:170px}
+.chip-btn:hover,.chip-btn.open{background:var(--bg3);color:var(--fg0)}
+.chip-btn>span{overflow:hidden;text-overflow:ellipsis}
+.chip-btn .ic{width:14px;height:14px}
+.chip-btn .caret{width:11px;height:11px;stroke-width:2.4;transform:rotate(90deg);opacity:.6;flex-shrink:0}
+.chip-btn.off span{text-decoration:line-through;opacity:.6}
+.chip-btn .fi{margin:0;width:auto;min-width:14px}
+#ci-effort{flex-shrink:0}
+#ci-model{flex-shrink:1;min-width:64px;max-width:140px}
+#ci-file{flex-shrink:3;min-width:34px}
+.input-hint{font-size:11px;color:var(--fg3);padding:6px 4px 0;display:flex;gap:12px;justify-content:center}
+.input-hint b{font-weight:600;color:var(--fg2)}
 #send-btn{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;flex-shrink:0;transition:opacity .15s,background .15s}
 #send-btn .ic{width:16px;height:16px;stroke-width:2.4}
 #send-btn:hover{background:var(--accent2)}
@@ -275,9 +288,12 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 .sb-err{color:var(--red)}.sb-warn{color:var(--yellow)}
 
 /* Quick open */
-#quick-back{position:fixed;inset:0;z-index:1000;display:none}
+#quick-back{position:fixed;inset:0;z-index:1000;display:none;background:rgba(0,0,0,.18)}
 #quick-back.open{display:block}
-#quick{position:absolute;top:56px;left:50%;transform:translateX(-50%);width:min(640px,calc(100vw - 32px));background:var(--bg1);border:1px solid var(--bg4);border-radius:10px;box-shadow:0 18px 60px rgba(0,0,0,.5);overflow:hidden}
+#quick-back.anchored{background:transparent}
+#quick{position:absolute;top:56px;left:50%;transform:translateX(-50%);width:min(640px,calc(100vw - 32px));background:var(--bg1);border:1px solid var(--bg4);border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.5);overflow:hidden;animation:popin .12s ease-out}
+#quick.anchored{transform:none;max-height:calc(100vh - 16px);display:flex;flex-direction:column}
+.qi .qcheck{color:var(--accent);margin-left:auto;font-weight:700}
 #quick-title{font-size:11px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:var(--fg3);padding:10px 14px 0}
 #quick-title:empty{display:none}
 #quick-input{width:100%;background:var(--bg2);border:1px solid var(--border);outline:none;border-radius:var(--r-sm);padding:8px 12px;margin:8px 0 0;color:var(--fg0);font-size:13.5px}
@@ -296,12 +312,46 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 .q-sep{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--fg3);padding:8px 10px 3px;font-weight:650}
 
 /* Context menu */
-#ctxmenu{position:fixed;z-index:1100;min-width:210px;background:var(--bg1);border:1px solid var(--bg4);border-radius:var(--r);box-shadow:0 12px 40px rgba(0,0,0,.45);padding:4px;display:none;font-size:12.5px}
-.mi{display:flex;align-items:center;gap:20px;padding:5px 10px;border-radius:4px;cursor:pointer;color:var(--fg1)}
-.mi:hover{background:var(--accent);color:#fff}
-.mi:hover kbd{color:#fff;background:transparent;border-color:rgba(255,255,255,.3)}
+#ctxmenu{position:fixed;z-index:1100;min-width:220px;background:var(--bg1);border:1px solid var(--bg4);border-radius:10px;box-shadow:0 14px 44px rgba(0,0,0,.45);padding:5px;display:none;font-size:12.5px;animation:popin .1s ease-out}
+.mi{display:flex;align-items:center;gap:20px;padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--fg1)}
+.mi:hover{background:var(--bg3);color:var(--fg0)}
 .mi span{flex:1}
-.mi.danger{color:var(--red)}.mi.danger:hover{background:var(--red);color:#fff}
+.mi.danger{color:var(--red)}.mi.danger:hover{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+
+/* Popover menus anchored to the button that opened them */
+@keyframes popin{from{opacity:0;transform:translateY(var(--pop-dy,-4px)) scale(.98)}}
+#popover{position:fixed;z-index:1150;display:none;flex-direction:column;background:var(--bg1);border:1px solid var(--bg4);border-radius:12px;box-shadow:0 16px 50px rgba(0,0,0,.5);overflow:hidden;font-size:13px;outline:none}
+#popover.open{display:flex;animation:popin .12s ease-out}
+#popover[data-side=above]{--pop-dy:4px}
+.pop-title{padding:10px 14px 4px;font-size:11px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:var(--fg3)}
+.pop-search-wrap{padding:6px 8px 4px}
+.pop-search{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;outline:none;color:var(--fg0);font-size:12.5px}
+.pop-search:focus{border-color:color-mix(in srgb,var(--accent) 60%,var(--border))}
+.pop-list{overflow-y:auto;padding:4px 5px 5px;min-height:0}
+.pi{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:7px;cursor:pointer;color:var(--fg1);min-width:0}
+.pi.sel{background:var(--bg3);color:var(--fg0)}
+.pi.disabled{opacity:.45;cursor:default}
+.pi.danger{color:var(--red)}
+.pi-ic{width:18px;display:grid;place-items:center;flex-shrink:0;color:var(--fg2)}
+.pi-ic .ic{width:16px;height:16px}
+.pi-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.pi-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi-label b{color:var(--accent2);font-weight:650}
+.pi-desc{font-size:11.5px;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi.sel .pi-desc{color:var(--fg2)}
+.pi-right{font-size:11px;color:var(--fg3);white-space:nowrap}
+.pi-check{width:14px;color:var(--accent);font-weight:700;flex-shrink:0;text-align:center}
+.pop-sep{height:1px;background:var(--border);margin:4px 6px}
+.pop-head{font-size:10.5px;font-weight:650;letter-spacing:.7px;text-transform:uppercase;color:var(--fg3);padding:8px 9px 3px}
+.pop-note{display:flex;align-items:center;gap:8px;margin:2px 4px 4px;padding:7px 9px;border-radius:7px;background:var(--bg2);font-size:12px;color:var(--fg2)}
+.pop-note .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--fg3)}
+.pop-note.ok .dot{background:var(--green)}.pop-note.warn .dot{background:var(--yellow)}
+.pop-foot{padding:7px 14px 9px;border-top:1px solid var(--border);font-size:11.5px;color:var(--fg3)}
+.pop-empty{padding:10px 12px;color:var(--fg3);font-size:12px}
+
+/* Explorer indent guides */
+.row .guide{position:absolute;top:0;bottom:0;width:1px;background:transparent;transition:background .15s}
+#tree:hover .row .guide{background:var(--border)}
 .msep{height:1px;background:var(--border);margin:4px 6px}
 
 /* Toasts */
@@ -358,6 +408,18 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 .plug-err{color:var(--red);font:11.5px var(--font-mono);margin-top:6px;word-break:break-word}
 .plug-links{margin-top:6px;font-size:12px}
 .plug-links a{color:var(--accent2);text-decoration:none;cursor:pointer}
+.plug-links a:hover{text-decoration:underline}
+.plug-links .dot-sep{color:var(--fg3);margin:0 6px}
+.plug-name.link{cursor:pointer}
+.plug-name.link:hover{color:var(--accent2)}
+.plug-desc{color:var(--fg2);font-size:12px;line-height:1.45;margin-top:4px}
+.readme-bar{display:flex;gap:6px;padding:12px 26px 0}
+.readme-view{padding:10px 26px 48px;max-width:860px;font-size:13.5px;line-height:1.6;color:var(--fg1);user-select:text}
+.readme-view h1{font-size:22px;margin:10px 0 8px}
+.readme-view h2{font-size:17px;margin:22px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.readme-view h3{font-size:14.5px;margin:16px 0 6px}
+.readme-view table{display:block;overflow-x:auto;max-width:100%}
+.readme-view th{background:var(--bg2);text-align:left}
 .empty{color:var(--fg3);padding:4px 16px 12px;font-size:12.5px}
 .api-doc{margin:8px 12px 20px;font-size:12px;color:var(--fg2)}
 .api-doc summary{cursor:pointer;color:var(--fg1);padding:4px 0}
@@ -375,8 +437,42 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 #ai-progress small{color:var(--fg3)}
 #ai-progress button{padding:2px 9px;border-radius:10px;background:var(--bg4);font-size:11.5px}
 #ai-progress button:hover{background:var(--red);color:#fff}
-#review{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}
-#review.open{display:flex}
+#review,#multi{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}
+#review.open,#multi.open{display:flex}
+#multi .rv{width:min(1440px,calc(100vw - 40px));height:calc(100vh - 56px)}
+.mv-body{flex:1;display:flex;min-height:0}
+.mv-files{width:280px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:6px}
+.mv-main{flex:1;display:flex;flex-direction:column;min-width:0}
+.mv-why{padding:8px 14px;border-bottom:1px solid var(--border);font-size:12.5px;color:var(--fg2);background:var(--bg1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-why.err{color:var(--red)}
+#multi-diff{flex:1;min-height:0}
+.mf{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;color:var(--fg1)}
+.mf:hover{background:var(--bg2)}
+.mf.sel{background:var(--bg3);color:var(--fg0)}
+.mf input{accent-color:var(--accent);flex-shrink:0;cursor:pointer}
+.mf .fi{margin:0}
+.mf-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.mf-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+.mf-dir{font-size:11px;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mf-badge{font:600 10.5px var(--font-mono);color:var(--fg3);white-space:nowrap;display:flex;align-items:center;gap:5px}
+.mf-badge .add{color:var(--green)}.mf-badge .del{color:var(--red)}
+.mf.pending{opacity:.55}
+.mf.failed .mf-name{color:var(--red)}
+.mf.nochange .mf-name{color:var(--fg3)}
+.mf.delete .mf-name{text-decoration:line-through}
+@media (max-width: 860px) {
+  #review .rv,#multi .rv{width:calc(100vw - 16px);height:calc(100vh - 16px)}
+  .rv-head{flex-wrap:wrap;row-gap:6px}
+  .rv-sub{order:5;width:100%}
+  .mv-body{flex-direction:column}
+  .mv-files{width:auto;max-height:34%;border-right:none;border-bottom:1px solid var(--border)}
+}
+.spin{width:11px;height:11px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.mv-status{display:flex;align-items:center;gap:8px}
+.toast{display:flex;align-items:center;gap:10px}
+.toast>span{flex:1}
+.toast-btn{padding:3px 10px;border-radius:5px;background:var(--bg4);color:var(--fg0);font-size:12px;font-weight:600}
+.toast-btn:hover{background:var(--accent);color:#fff}
 .rv{width:min(1200px,calc(100vw - 48px));height:min(760px,calc(100vh - 80px));display:flex;flex-direction:column;background:var(--bg1);border:1px solid var(--bg4);border-radius:12px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.55)}
 .rv-head{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--border)}
 .rv-head svg{width:18px;height:18px;color:var(--accent)}
@@ -394,6 +490,104 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 .mi .mcheck{width:14px;color:var(--accent);flex:0 0 14px;margin-right:-12px}
 .ai-editing{background:var(--accent-dim)}
 
+/* Diff tabs */
+#diffview{position:absolute;inset:0;display:none;flex-direction:column}
+#editor-wrap.has-side #diffview{right:var(--side-w,48%)}
+.dv-bar{height:34px;display:flex;align-items:center;gap:8px;padding:0 10px 0 16px;border-bottom:1px solid var(--border);background:var(--bg1);flex-shrink:0;font-size:12.5px}
+.dv-title{flex:1;min-width:0;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-title b{color:var(--fg0);font-weight:600}
+.dv-actions{display:flex;gap:6px}
+.dv-actions .btn{padding:3px 10px;font-size:12px}
+#dv-editor{flex:1;min-height:0}
+
+/* Bottom panel tabs + Problems */
+.ptab{align-self:stretch;padding:0 2px;margin-right:14px;font-size:11px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:var(--fg3);border-bottom:2px solid transparent;display:flex;align-items:center;gap:6px}
+.ptab:hover{color:var(--fg1)}
+.ptab.active{color:var(--fg0);border-bottom-color:var(--accent)}
+.pcount{background:var(--bg4);color:var(--fg1);border-radius:9px;padding:0 6px;font-size:10px;letter-spacing:0;line-height:16px}
+.pcount:empty{display:none}
+.term-only{display:flex;align-items:center;gap:2px}
+#term-panel.problems .term-only{display:none}
+#term-panel.problems #term-sub{visibility:hidden}
+#problems-view{flex:1;min-height:0;overflow:auto;display:none;padding:2px 0 8px}
+#term-panel.problems #xterm{display:none}
+#term-panel.problems #problems-view{display:block}
+.pr-file{display:flex;align-items:center;gap:6px;height:24px;padding:0 14px;font-size:12.5px;cursor:pointer;color:var(--fg1)}
+.pr-file .sdir{color:var(--fg3);font-size:11.5px}
+.pr-file .cnt{background:var(--bg3);color:var(--fg2);border-radius:9px;padding:0 6px;font-size:10.5px}
+.pr-row{display:flex;align-items:center;gap:8px;height:22px;padding:0 14px 0 36px;font-size:12px;cursor:pointer;color:var(--fg1);white-space:nowrap}
+.pr-row:hover,.pr-file:hover{background:var(--bg2)}
+.pr-row .ic{width:13px;height:13px}
+.pr-row .msg{overflow:hidden;text-overflow:ellipsis}
+.pr-row .src{color:var(--fg3);font-size:11px;flex-shrink:0}
+.pr-empty{padding:12px 16px;color:var(--fg3);font-size:12.5px}
+
+/* Activity bar badge */
+.ab-badge{position:absolute;right:6px;bottom:6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--accent);color:#fff;font:700 9.5px/16px var(--font-ui);text-align:center}
+.ab-badge:empty{display:none}
+
+/* Source control */
+.scm-branch{display:flex;align-items:center;gap:6px;padding:2px 12px 10px 14px;font-size:12.5px;color:var(--fg1)}
+.scm-branch .bname{cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px;min-width:0;padding:3px 6px;margin-left:-6px;border-radius:6px}
+.scm-branch .bname:hover{background:var(--bg2)}
+.scm-branch .bname span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scm-branch .ic{width:14px;height:14px;color:var(--accent)}
+.scm-sync{margin-left:auto;display:flex;align-items:center;gap:5px;font:600 11px var(--font-mono);color:var(--fg2);padding:3px 8px;border-radius:6px;background:var(--bg2);cursor:pointer;flex-shrink:0}
+.scm-sync:hover{background:var(--bg3);color:var(--fg0)}
+.scm-sync .ic{width:13px;height:13px;color:inherit}
+.scm-commit{padding:0 12px 10px;display:flex;flex-direction:column;gap:6px}
+.scm-msg{position:relative}
+.scm-msg textarea{display:block;width:100%;min-height:58px;max-height:180px;resize:vertical;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:7px 32px 7px 9px;color:var(--fg0);outline:none;font:12.5px/1.45 var(--font-ui)}
+.scm-msg textarea:focus{border-color:color-mix(in srgb,var(--accent) 60%,var(--border))}
+.scm-msg .gen{position:absolute;right:5px;top:5px}
+.scm-btns{display:flex;gap:4px}
+.scm-btns .btn.primary{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
+.scm-btns .btn .ic{width:14px;height:14px}
+.scm-btns .caret{transform:rotate(90deg)}
+.mini{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;color:var(--fg2);flex-shrink:0}
+.mini:hover{background:var(--bg4);color:var(--fg0)}
+.mini .ic{width:14px;height:14px}
+.mini.busy .ic{animation:spin .9s linear infinite}
+.scm-group{display:flex;align-items:center;gap:6px;height:26px;padding:0 6px 0 4px;font-size:11px;font-weight:650;letter-spacing:.6px;text-transform:uppercase;color:var(--fg2);cursor:pointer;user-select:none}
+.scm-group:hover{color:var(--fg1)}
+.scm-group .cnt{background:var(--bg3);color:var(--fg1);border-radius:9px;padding:0 6px;font-size:10.5px;letter-spacing:0}
+.scm-group .acts,.scm-file .acts{margin-left:auto;display:none;gap:1px}
+.scm-group:hover .acts,.scm-file:hover .acts{display:flex}
+.scm-sec.closed .scm-file{display:none}
+.scm-sec.closed .chev{transform:none}
+.scm-file{display:flex;align-items:center;gap:4px;height:24px;padding:0 6px 0 22px;cursor:pointer;font-size:12.5px;color:var(--fg1);white-space:nowrap}
+.scm-file:hover{background:var(--bg2)}
+.scm-file.sel{background:var(--bg3)}
+.scm-file .fi{margin-right:2px}
+.scm-file .name{overflow:hidden;text-overflow:ellipsis;flex-shrink:0;max-width:60%}
+.scm-file .sdir{color:var(--fg3);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;margin-left:4px}
+.scm-file .st{font:700 11px var(--font-mono);width:16px;text-align:center;flex-shrink:0}
+.st-M{color:var(--yellow)}.st-A,.st-U{color:var(--green)}.st-D{color:var(--red)}.st-R{color:var(--cyan)}.st-C{color:var(--red)}
+.scm-empty{padding:6px 14px 12px;color:var(--fg3);font-size:12.5px;line-height:1.55}
+.scm-empty .btn{margin-top:10px}
+
+/* Outline */
+#outline-body{padding:2px 0 20px}
+.ol-row{display:flex;align-items:center;gap:6px;height:24px;padding-right:10px;cursor:pointer;font-size:12.5px;color:var(--fg1);white-space:nowrap}
+.ol-row:hover{background:var(--bg2)}
+.ol-row.cur{background:var(--bg3);color:var(--fg0)}
+.ol-kind{width:16px;text-align:center;font:800 10px var(--font-mono);flex-shrink:0}
+.ok-class{color:var(--purple)}.ok-function{color:var(--yellow)}.ok-method{color:var(--blue)}.ok-heading{color:var(--cyan)}
+.ok-variable{color:var(--accent2)}.ok-type{color:var(--green)}.ok-module{color:var(--fg2)}.ok-key{color:var(--blue)}
+.ol-name{overflow:hidden;text-overflow:ellipsis}
+.ol-line{margin-left:auto;color:var(--fg3);font-size:11px;font-family:var(--font-mono);padding-left:8px}
+
+/* Git gutter markers and inline blame */
+.gd-add,.gd-mod{width:3px!important;margin-left:5px;border-radius:1px}
+.gd-add{background:var(--green)}
+.gd-mod{background:var(--blue)}
+.gd-del{width:7px!important;height:7px!important;margin-left:4px;background:linear-gradient(to bottom right,var(--red) 50%,transparent 50%)}
+[class*="gb-msg-"]::after{margin-left:3em;color:var(--fg3);font-style:italic;white-space:pre;pointer-events:none;opacity:.85}
+.crumb.sym{color:var(--fg2)}
+.crumb.sym .ol-kind{display:inline-block;width:auto}
+.scm-sync.busy{opacity:.5;pointer-events:none}
+.icon-btn.busy .ic{animation:spin .9s linear infinite}
+
 /* Monaco polish */
 .monaco-editor .margin,.monaco-editor-background{transition:background-color .2s}
 .monaco-editor .suggest-widget,.monaco-editor .monaco-hover{border-radius:var(--r-sm)!important;overflow:hidden}
@@ -405,17 +599,19 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
     <div class="logo" id="logo"></div>
     <div class="pill" id="tb-folder" title="Open folder (Ctrl+O)"></div>
     <div class="pill" id="tb-search" title="Go to file (Ctrl+P)"></div>
-    <span class="effort" id="tb-effort" title="Effort level"></span>
-    <div class="pill" id="tb-model" title="Model"><span class="dot"></span><span></span></div>
-    <button class="icon-btn" id="tb-sidebar" title="Toggle sidebar (Ctrl+B)"></button>
-    <button class="icon-btn" id="tb-term" title="Toggle terminal (Ctrl+`)"></button>
-    <button class="icon-btn" id="tb-chat" title="Toggle chat (Ctrl+Alt+B)"></button>
+    <div id="tb-toggles">
+      <button class="icon-btn" id="tb-sidebar" title="Toggle sidebar (Ctrl+B)"></button>
+      <button class="icon-btn" id="tb-term" title="Toggle terminal (Ctrl+`)"></button>
+      <button class="icon-btn" id="tb-chat" title="Toggle chat (Ctrl+Alt+B)"></button>
+    </div>
   </div>
 
   <div id="workspace">
     <nav id="activitybar">
       <button class="ab" data-view="explorer" title="Explorer (Ctrl+Shift+E)"></button>
       <button class="ab" data-view="search" title="Search (Ctrl+Shift+F)"></button>
+      <button class="ab" data-view="scm" title="Source Control (Ctrl+Shift+G)"><span class="ab-badge" id="scm-badge"></span></button>
+      <button class="ab" data-view="outline" title="Outline"></button>
       <button class="ab" data-view="plugins" title="Plugins (Ctrl+Shift+X)"></button>
       <div class="spacer"></div>
       <button class="ab" id="ab-chat" title="Chat (Ctrl+L)"></button>
@@ -447,6 +643,19 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
         </div>
         <div class="view-body" id="search-results"></div>
       </section>
+      <section class="view" id="view-scm">
+        <div class="view-head">
+          <span class="view-title">Source Control</span>
+          <button class="icon-btn" data-act="scmRefresh" title="Refresh"></button>
+          <button class="icon-btn" data-act="scmMore" title="More actions"></button>
+        </div>
+        <div class="view-body" id="scm-body"></div>
+      </section>
+      <section class="view" id="view-outline">
+        <div class="view-head"><span class="view-title" id="outline-title">Outline</span></div>
+        <div class="search-box"><div class="sinput"><input id="outline-filter" placeholder="Filter symbols" spellcheck="false"></div></div>
+        <div class="view-body" id="outline-body"></div>
+      </section>
       <section class="view" id="view-plugins">
         <div class="view-head"><span class="view-title">Plugins</span></div>
         <div class="view-body" id="plugins-body"></div>
@@ -465,21 +674,27 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
         <div id="monaco"></div>
         <div id="image-view"><img alt=""><div class="meta"></div></div>
         <div id="welcome"></div>
+        <div id="diffview"><div class="dv-bar"><span class="dv-title" id="dv-title"></span><span class="dv-actions" id="dv-actions"></span></div><div id="dv-editor"></div></div>
         <div id="side-view"><div class="sv-head"><span class="sv-title"></span><button class="icon-btn" id="side-close" title="Close"></button></div><div class="sv-body"></div></div>
         <div id="ai-progress"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/></svg><span id="ai-progress-text"></span><small id="ai-progress-count"></small><button id="ai-progress-cancel">Cancel · Esc</button></div>
       </div>
       <div class="split-y" id="term-split"></div>
       <section id="term-panel">
         <div id="term-head">
-          <span class="view-title">Terminal</span>
+          <button class="ptab active" data-ptab="terminal">Terminal</button>
+          <button class="ptab" data-ptab="problems">Problems<span class="pcount" id="problems-count"></span></button>
           <span class="tsub" id="term-sub"></span>
-          <button class="icon-btn" data-act="runFile" title="Run active file (F5)"></button>
-          <button class="icon-btn" data-act="termClear" title="Clear"></button>
-          <button class="icon-btn" data-act="termRestart" title="Restart shell"></button>
+          <span class="term-only">
+            <button class="icon-btn" data-act="runTask" title="Run task (Ctrl+Shift+B)"></button>
+            <button class="icon-btn" data-act="runFile" title="Run active file (F5)"></button>
+            <button class="icon-btn" data-act="termClear" title="Clear"></button>
+            <button class="icon-btn" data-act="termRestart" title="Restart shell"></button>
+          </span>
           <button class="icon-btn" data-act="termMax" title="Maximize panel"></button>
           <button class="icon-btn" data-act="termHide" title="Hide (Ctrl+`)"></button>
         </div>
         <div id="xterm"></div>
+        <div id="problems-view"></div>
       </section>
     </main>
 
@@ -494,14 +709,16 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
       <div id="input-area">
         <div id="slash"></div>
         <div id="input-box">
-          <textarea id="chat-input" rows="1" spellcheck="false" placeholder="Ask ocode to build, fix, or explain…  ( / for commands )"></textarea>
+          <textarea id="chat-input" rows="1" spellcheck="false" placeholder="Ask ocode to build, fix, or explain…"></textarea>
           <div class="input-row">
-            <span class="mini-pill" id="ci-effort" title="Effort"></span>
-            <span class="mini-pill" id="ci-file" title="Active file is shared with ocode"></span>
-            <span class="hint">⏎ send · ⇧⏎ newline</span>
+            <button class="chip-btn" id="ci-model" title="Chat model"></button>
+            <button class="chip-btn" id="ci-effort" title="Effort — how hard ocode thinks"></button>
+            <button class="chip-btn" id="ci-file"></button>
+            <span class="spacer"></span>
             <button id="send-btn" title="Send"></button>
           </div>
         </div>
+        <div class="input-hint"><span><b>⏎</b> send</span><span><b>⇧⏎</b> new line</span><span><b>/</b> commands</span></div>
       </div>
     </aside>
   </div>
@@ -519,7 +736,15 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
     <button class="btn" id="review-reject">Reject<kbd>Esc</kbd></button><button class="btn primary" id="review-accept">Accept<kbd>Ctrl ⏎</kbd></button></div>
   <div id="review-diff"></div>
 </div></div>
+<div id="multi"><div class="rv">
+  <div class="rv-head"><span id="multi-logo"></span><span class="rv-title" id="multi-title"></span><span class="rv-sub mv-status" id="multi-status"></span>
+    <button class="btn" id="multi-stop">Stop</button>
+    <button class="btn" id="multi-cancel">Discard<kbd>Esc</kbd></button>
+    <button class="btn primary" id="multi-apply">Apply<kbd>Ctrl ⏎</kbd></button></div>
+  <div class="mv-body"><div class="mv-files" id="multi-files"></div><div class="mv-main"><div class="mv-why" id="multi-why"></div><div id="multi-diff"></div></div></div>
+</div></div>
 <div id="ctxmenu"></div>
+<div id="popover" tabindex="-1"></div>
 <div id="toasts"></div>
 
 <script>
@@ -562,6 +787,19 @@ const ICONS = {
   history:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
   sparkle:'<path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/>',
   sort:'<path d="M3 6h11M3 12h8M3 18h5M18 5v15M15 17l3 3 3-3"/>',
+  gitBranch:'<circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="8" r="2.2"/><path d="M6 8.2v7.6M18 10.2c0 4.5-5 4-10.4 6.4"/>',
+  scm:'<circle cx="7" cy="5.5" r="2.2"/><circle cx="7" cy="18.5" r="2.2"/><circle cx="17" cy="12" r="2.2"/><path d="M7 7.7v8.6M9 6.5c4 .5 6 2.5 6.5 3.5"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
+  minus:'<path d="M5 12h14"/>',
+  undo:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  more:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+  sync:'<path d="M21 12a9 9 0 0 1-15.4 6.4L3 16"/><path d="M3 12a9 9 0 0 1 15.4-6.4L21 8"/><path d="M3 21v-5h5M21 3v5h-5"/>',
+  arrowDown:'<path d="M12 5v14M6 13l6 6 6-6"/>',
+  arrowUp:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+  tasks:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  bookmark:'<path d="M6 3h12v18l-6-4-6 4z"/>',
 };
 const LOGO = '<svg viewBox="0 0 24 24"><path d="M12 1.5 22.5 12 12 22.5 1.5 12z" fill="currentColor"/><path d="M12 7.2 16.8 12 12 16.8 7.2 12z" fill="var(--bg1)"/><path d="M12 10 14 12 12 14 10 12z" fill="currentColor"/></svg>';
 const icon = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24">${ICONS[n] || ''}</svg>`;
@@ -610,8 +848,9 @@ function on(ev, cb) { (listeners[ev] ||= []).push(cb); return () => { listeners[
 function emit(ev, ...a) { for (const cb of listeners[ev] || []) { try { cb(...a); } catch (e) { console.error(e); } } }
 
 // ── Toasts ────────────────────────────────────────────────────────────────────
-function toast(msg, kind = '', ms = 3500) {
-  const t = h('div', { class: 'toast ' + kind }, msg);
+function toast(msg, kind = '', ms = 3500, action) {
+  const t = h('div', { class: 'toast ' + kind }, h('span', {}, msg),
+    action ? h('button', { class: 'toast-btn', onclick: () => { t.remove(); action.run(); } }, action.label) : null);
   $('#toasts').append(t);
   setTimeout(() => { t.style.transition = 'opacity .25s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 260); }, ms);
 }
@@ -700,7 +939,7 @@ function setSettings(patch, opts = {}) {
   Object.assign(S, patch); Object.assign(pendingSettings, patch); flushSettings();
   applySettings(patch, opts); emit('settingsChange', patch);
 }
-const QUIET_KEYS = new Set(['openTabs', 'activeTab', 'recentFiles', 'layout', 'cwd', 'disabledPlugins']);
+const QUIET_KEYS = new Set(['openTabs', 'activeTab', 'recentFiles', 'recentFolders', 'layout', 'cwd', 'disabledPlugins', 'lastTask', 'bookmarks', 'organizeLastRun']);
 function applySettings(patch, opts = {}) {
   if (Object.keys(patch).every(k => QUIET_KEYS.has(k))) return;
   if ('theme' in patch) applyTheme(S.theme);
@@ -709,6 +948,9 @@ function applySettings(patch, opts = {}) {
   if ('showHidden' in patch || 'sortOrder' in patch || 'foldersFirst' in patch) refreshTree();
   if ('aiComplete' in patch || 'completeHost' in patch || 'completeModel' in patch) checkCompleteStatus();
   if ('effort' in patch || 'model' in patch) renderChrome();
+  if ('shareActiveFile' in patch) renderChatFilePill();
+  if ('gitGutter' in patch) updateGutter();
+  if ('gitBlame' in patch) updateBlame();
   if (!opts.fromForm && $('#view-settings').classList.contains('active')) renderSettingsView();
 }
 async function reloadSettingsFromDisk() {
@@ -744,13 +986,21 @@ function editorOptions() {
 function createEditor() {
   editor = monaco.editor.create($('#monaco'), { model: null, ...editorOptions() });
   editor.onDidChangeCursorSelection(() => { renderPosStatus(); renderChatFilePill(); });
-  monaco.editor.onDidChangeMarkers(uris => { const m = editor.getModel(); if (m && uris.some(u => u.toString() === m.uri.toString())) renderStatus(); });
+  let lastLine = 0;
+  editor.onDidChangeCursorPosition(e => { onCursorMoved(); if (e.position.lineNumber !== lastLine) { lastLine = e.position.lineNumber; BLAME.coll?.clear(); updateBlame(); } });
+  editor.onDidChangeModelContent(() => { updateGutter(); refreshOutline(); BLAME.coll?.clear(); updateBlame(); });
+  monaco.editor.onDidChangeMarkers(uris => { renderProblemsSoon(); const m = editor.getModel(); if (m && uris.some(u => u.toString() === m.uri.toString())) renderStatus(); });
   const action = (id, label, run, order) => editor.addAction({ id, label, contextMenuGroupId: '0_ocode', contextMenuOrder: order, run });
   action('ocode.edit', 'Edit with ocode…  (Ctrl+K)', () => runCommand('ai.inlineEdit'), 0);
+  action('ocode.multiEdit', 'Edit Multiple Files with ocode…  (Ctrl+I)', () => runCommand('ai.multiEdit'), 0.5);
   action('ocode.ask', 'Ask ocode About Selection', () => runCommand('ai.askSelection'), 1);
   action('ocode.explain', 'Explain with ocode', () => runCommand('ai.explainSelection'), 2);
   action('ocode.fix', 'Fix with ocode', () => runCommand('ai.fixSelection'), 3);
   action('ocode.runSel', 'Run Selection in Terminal', () => runCommand('terminal.runSelection'), 4);
+  const histAction = (id, label, run, order) => editor.addAction({ id, label, contextMenuGroupId: '9_history', contextMenuOrder: order, run });
+  histAction('ocode.gitChanges', 'Git: Open Changes', () => openFileChanges(), 1);
+  histAction('ocode.gitHistory', 'Git: File History…', () => showFileHistory(), 2);
+  histAction('ocode.localHistory', 'Local History…', () => showLocalHistory(), 3);
 }
 
 const isDirty = t => t && t.kind === 'text' && t.model.getAlternativeVersionId() !== t.savedVersion;
@@ -795,6 +1045,7 @@ function activate(path, opts = {}) {
   const t = tabs.get(active);
   $('#monaco').style.visibility = t?.kind === 'text' ? 'visible' : 'hidden';
   $('#image-view').style.display = t?.kind === 'image' ? 'grid' : 'none';
+  $('#diffview').style.display = t?.kind === 'diff' ? 'flex' : 'none';
   $('#welcome').style.display = t ? 'none' : 'flex';
   if (t?.kind === 'text') {
     editor.setModel(t.model);
@@ -806,15 +1057,20 @@ function activate(path, opts = {}) {
       const img = $('#image-view img');
       img.onload = () => { $('#image-view .meta').textContent = `${img.naturalWidth} × ${img.naturalHeight}`; };
       img.src = '/api/raw?path=' + enc(t.path) + '&v=' + Date.now();
-    } else renderWelcome();
+    } else if (t?.kind === 'diff') showDiffTab(t);
+    else renderWelcome();
   }
+  refreshOutline(); updateGutter(); updateBlame();
   renderTabs(); renderCrumbs(); renderStatus(); markTreeActive(); renderChatFilePill();
   document.title = t ? `${t.name} — ${basename(S.cwd)}` : `ocode — ${basename(S.cwd)}`;
   if (t?.kind === 'text') revealInTree(t.path);
   saveSession();
 }
 
-const saveSession = debounce(() => setSettings({ openTabs: [...tabs.keys()], activeTab: active }), 400);
+const saveSession = debounce(() => {
+  const real = [...tabs.values()].filter(t => t.kind !== 'diff');
+  setSettings({ openTabs: real.map(t => t.path), activeTab: tabs.get(active)?.path || null });
+}, 400);
 
 const autosaveTimers = new Map();
 function onContentChange(t) {
@@ -825,13 +1081,13 @@ function onContentChange(t) {
   }
 }
 
-async function saveTab(t, manual = false) {
+async function saveTab(t, manual = false, source = 'save') {
   if (!t || t.kind !== 'text') return;
   if (manual && S.formatOnSave && t.path === active) { try { await editor.getAction('editor.action.formatDocument')?.run(); } catch {} }
   const version = t.model.getAlternativeVersionId();
   const content = t.model.getValue();
   try {
-    await post('/api/file', { path: t.path, content });
+    await post('/api/file', { path: t.path, content, source });
     t.savedVersion = version;
     renderTabsDirty(t);
     emit('fileSave', t.path, content);
@@ -850,14 +1106,17 @@ async function closeTab(path, force = false) {
     if (choice === 'save') await saveTab(t);
   }
   const keys = [...tabs.keys()], idx = keys.indexOf(path);
-  t.sub?.dispose(); t.model?.dispose(); tabs.delete(path);
+  t.sub?.dispose();
+  if (t.kind === 'diff') { if (active === path) tabDiff?.setModel(null); for (const m of t.owned || []) m.dispose(); }
+  else t.model?.dispose();
+  tabs.delete(path);
   if (active === path) { const next = keys[idx + 1] || keys[idx - 1]; activate(next && next !== path ? next : null); }
   else { renderTabs(); saveSession(); }
 }
 
 async function reloadIfOpen(path) {
   const t = tabs.get(path);
-  if (!t) return false;
+  if (!t || t.kind === 'diff') return false;
   if (t.kind === 'image') { if (active === path) activate(path, { noFocus: true }); return true; }
   if (isDirty(t)) return true;
   try {
@@ -893,24 +1152,29 @@ function renderTabs() {
   const bar = $('#tabbar');
   const names = {};
   for (const t of tabs.values()) names[t.name] = (names[t.name] || 0) + 1;
-  bar.replaceChildren(...[...tabs.values()].map(t => {
-    const el = h('div', { class: 'tab' + (t.path === active ? ' active' : '') + (isDirty(t) ? ' dirty' : ''), title: tilde(t.path), 'data-path': t.path,
-      onclick: () => activate(t.path), onauxclick: e => { if (e.button === 1) closeTab(t.path); },
-      oncontextmenu: e => { e.preventDefault(); tabMenu(e, t); } });
-    el.innerHTML = fileIcon(t.name) + `<span class="tname">${esc(t.name)}</span>` + (names[t.name] > 1 ? `<span class="tdir">${esc(basename(dirname(t.path)))}</span>` : '');
-    el.append(h('span', { class: 'tclose', html: `<span class="dirty"></span>${icon('x')}`, onclick: e => { e.stopPropagation(); closeTab(t.path); } }));
+  bar.replaceChildren(...[...tabs.entries()].map(([key, t]) => {
+    const el = h('div', { class: 'tab' + (key === active ? ' active' : '') + (isDirty(t) ? ' dirty' : ''), title: tilde(t.path), 'data-path': key,
+      onclick: () => activate(key), onauxclick: e => { if (e.button === 1) closeTab(key); },
+      oncontextmenu: e => { e.preventDefault(); tabMenu(e, t, key); } });
+    el.innerHTML = fileIcon(t.iconName || t.name) + `<span class="tname">${esc(t.name)}</span>` + (names[t.name] > 1 ? `<span class="tdir">${esc(basename(dirname(t.path)))}</span>` : '');
+    el.append(h('span', { class: 'tclose', html: `<span class="dirty"></span>${icon('x')}`, onclick: e => { e.stopPropagation(); closeTab(key); } }));
     return el;
   }));
   $('.tab.active', bar)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 function renderTabsDirty(t) { const el = $(`.tab[data-path="${CSS.escape(t.path)}"]`); if (el) el.classList.toggle('dirty', isDirty(t)); }
 
-function tabMenu(e, t) {
+function tabMenu(e, t, key = t.path) {
   showMenu(e.clientX, e.clientY, [
-    { label: 'Close', kbd: 'Ctrl+W', run: () => closeTab(t.path) },
-    { label: 'Close Others', run: async () => { for (const p of [...tabs.keys()]) if (p !== t.path) await closeTab(p); } },
+    { label: 'Close', kbd: 'Ctrl+W', run: () => closeTab(key) },
+    { label: 'Close Others', run: async () => { for (const p of [...tabs.keys()]) if (p !== key) await closeTab(p); } },
     { label: 'Close All', run: () => runCommand('file.closeAll') },
     '-',
+    ...(t.kind === 'text' ? [
+      { label: 'Open Changes (Git)', run: () => openFileChanges(t.path) },
+      { label: 'Git History…', run: () => showFileHistory(t.path) },
+      { label: 'Local History…', run: () => showLocalHistory(t.path) },
+      '-'] : []),
     { label: 'Copy Path', run: () => copyText(t.path) },
     { label: 'Reveal in Explorer', run: () => { showView('explorer', true); revealInTree(t.path); } },
     { label: 'Open Containing Folder in Terminal', run: () => runInTerminal(`cd ${shq(dirname(t.path))}`) },
@@ -922,7 +1186,9 @@ function renderCrumbs() {
   const t = tabs.get(active);
   if (!t) { c.replaceChildren(); return; }
   const shown = t.path.startsWith(S.cwd + '/') ? [basename(S.cwd), ...rel(t.path).split('/')] : tilde(t.path).split('/').filter(Boolean);
-  c.innerHTML = shown.map((s, i) => (i ? icon('chev') : '') + `<span class="crumb">${esc(s)}</span>`).join('');
+  const syms = t.kind === 'text' && OUT.model === t.model ? symbolChain(editor.getPosition()?.lineNumber || 0) : [];
+  c.innerHTML = shown.map((s, i) => (i ? icon('chev') : '') + `<span class="crumb">${esc(s)}</span>`).join('') +
+    syms.map(s => icon('chev') + `<span class="crumb sym"><span class="ol-kind ok-${s.kind}">${KIND_LABEL[s.kind] || ''}</span> ${esc(s.name)}</span>`).join('');
 }
 
 function renderWelcome() {
@@ -936,6 +1202,7 @@ function renderWelcome() {
         kb('Go to File…', 'Ctrl+P', 'search', 'quickOpen'),
         kb('Open Folder…', 'Ctrl+O', 'folder', 'file.openFolder'),
         kb('Ask ocode', 'Ctrl+L', 'chat', 'ai.askSelection'),
+        kb('Edit Multiple Files…', 'Ctrl+I', 'files', 'ai.multiEdit'),
         kb('Command Palette', 'Ctrl+Shift+P', 'command', 'palette'),
         kb('Color Theme', '', 'sparkle', 'pref.theme'),
         kb('Settings', 'Ctrl+,', 'sliders', 'view.settings')),
@@ -973,14 +1240,16 @@ function sortEntries(entries) {
   const cmp = (SORTS[S.sortOrder] || SORTS.name)[1];
   return entries.slice().sort((a, b) => (S.foldersFirst !== false && a.is_dir !== b.is_dir ? (a.is_dir ? -1 : 1) : 0) || cmp(a, b));
 }
-function sortMenu(e) {
-  const r = e.currentTarget.getBoundingClientRect();
-  showMenu(r.left, r.bottom + 4, [
-    ...Object.entries(SORTS).map(([k, [label]]) => ({ label: `Sort by ${label}`, checked: (S.sortOrder || 'name') === k, run: () => setSettings({ sortOrder: k }) })),
-    '-',
-    { label: 'Folders First', checked: S.foldersFirst !== false, run: () => setSettings({ foldersFirst: S.foldersFirst === false }) },
-    { label: 'Show Hidden Files', checked: !!S.showHidden, run: () => setSettings({ showHidden: !S.showHidden }) },
-  ]);
+async function sortMenu(e) {
+  const v = await askPick('Sort files', [
+    ...Object.entries(SORTS).map(([k, [label]]) => ({ label, value: k, checked: (S.sortOrder || 'name') === k })),
+    { sep: true },
+    { label: 'Folders first', value: 'folders', checked: S.foldersFirst !== false },
+    { label: 'Show hidden files', value: 'hidden', checked: !!S.showHidden },
+  ], { anchor: e?.currentTarget, width: 270 });
+  if (v === 'folders') setSettings({ foldersFirst: S.foldersFirst === false });
+  else if (v === 'hidden') setSettings({ showHidden: !S.showHidden });
+  else if (v) setSettings({ sortOrder: v });
 }
 
 async function buildTree(container, dir, depth) {
@@ -1001,7 +1270,8 @@ async function buildTree(container, dir, depth) {
 function treeRow(e, depth) {
   const open = e.is_dir && expanded.has(e.path);
   const row = h('div', { class: 'row' + (e.is_dir ? ' dir' : ''), 'data-path': e.path, title: tilde(e.path), style: `padding-left:${6 + depth * 12}px` });
-  row.innerHTML = (e.is_dir ? `<span class="chev${open ? ' open' : ''}">${icon('chev')}</span>${folderIcon(open)}` : `<span class="chev"></span>${fileIcon(e.name)}`) + `<span class="name">${esc(e.name)}</span><span class="gbadge"></span>`;
+  const guides = Array.from({ length: depth }, (_, d) => `<span class="guide" style="left:${15 + d * 12}px"></span>`).join('');
+  row.innerHTML = guides + (e.is_dir ? `<span class="chev${open ? ' open' : ''}">${icon('chev')}</span>${folderIcon(open)}` : `<span class="chev"></span>${fileIcon(e.name)}`) + `<span class="name">${esc(e.name)}</span><span class="gbadge"></span>`;
   row._entry = e; row._depth = depth;
   decorateRow(row);
   row.onclick = () => e.is_dir ? toggleDir(row) : openFile(e.path);
@@ -1057,7 +1327,9 @@ function treeMenu(ev, e, row) {
     if (runnerFor(e.path)) items.push({ label: 'Run File', kbd: 'F5', run: () => runFile(e.path) });
     items.push({ label: 'Ask ocode About This File', run: () => { setPanel('chat', true); insertIntoChat(`@${rel(e.path)} `); } }, '-');
   }
+  if (e && !e.is_dir) items.push({ label: 'Git History…', run: () => showFileHistory(e.path) }, { label: 'Local History…', run: () => showLocalHistory(e.path) });
   if (e && e.is_dir) items.push({ label: 'Open as Workspace Folder', run: () => setCwd(e.path) });
+  items.push({ label: e && e.is_dir ? 'Edit Files in This Folder with ocode…' : 'Edit Multiple Files with ocode…', kbd: e && e.is_dir ? '' : 'Ctrl+I', run: () => runMultiEdit({ root: e && e.is_dir ? e.path : S.cwd }) });
   items.push({ label: 'Open in Terminal', run: () => runInTerminal(`cd ${shq(dir)}`) });
   const target = e || { name: basename(S.cwd), path: S.cwd, is_dir: true };
   const extra = explorerActions.filter(a => { try { return !a.when || a.when(target); } catch { return false; } });
@@ -1106,7 +1378,7 @@ async function setCwd(p, opts = {}) {
   p = absPath(p).replace(/(.)\/+$/, '$1');
   try { await api('/api/files?path=' + enc(p)); } catch (e) { toast(`Can't open folder: ${e.message}`, 'error'); return; }
   S.cwd = p;
-  if (!opts.noSave) setSettings({ cwd: p });
+  if (!opts.noSave) setSettings({ cwd: p, recentFolders: [p, ...(S.recentFolders || []).filter(x => x !== p)].slice(0, 12) });
   post('/api/cwd', { cwd: p }).catch(() => {});
   expanded.clear(); invalidateFileIndex();
   $('#explorer-title').textContent = basename(p);
@@ -1127,6 +1399,8 @@ async function refreshGit() {
     while (git.root && d.length >= git.root.length && !gitDirs.has(d)) { gitDirs.set(d, st); if (d === '/') break; d = dirname(d); }
   }
   decorateTree(); renderStatus();
+  await refreshScm();
+  updateGutter();
 }
 const refreshGitSoon = debounce(refreshGit, 600);
 
@@ -1165,9 +1439,22 @@ const runSearch = debounce(async () => {
 const QO = { open: false, opts: null, items: [], sel: 0, token: 0, first: true, resolve: null, prevFocus: null };
 function quick(opts) {
   if (QO.open) closeQuick(null);
+  closePopover(null);
   return new Promise(resolve => {
     Object.assign(QO, { open: true, opts, items: [], sel: 0, first: true, resolve, prevFocus: document.activeElement });
-    $('#quick-back').classList.add('open');
+    const back = $('#quick-back'), box = $('#quick');
+    const a = opts.anchor !== undefined ? opts.anchor : clickAnchor();
+    box.removeAttribute('style');
+    back.classList.toggle('anchored', !!a);
+    box.classList.toggle('anchored', !!a);
+    if (a) {
+      const r = a instanceof Element ? a.getBoundingClientRect() : a, w = Math.min(480, innerWidth - 16);
+      box.style.width = w + 'px';
+      box.style.left = Math.max(8, Math.min(r.left + r.width / 2 > innerWidth / 2 ? r.right - w : r.left, innerWidth - w - 8)) + 'px';
+      if (innerHeight - r.bottom > 320) box.style.top = r.bottom + 6 + 'px';
+      else { box.style.top = 'auto'; box.style.bottom = innerHeight - r.top + 6 + 'px'; }
+    }
+    back.classList.add('open');
     $('#quick-title').textContent = opts.title || '';
     const inp = $('#quick-input');
     inp.value = opts.value || ''; inp.placeholder = opts.placeholder || '';
@@ -1181,19 +1468,19 @@ async function updateQuick() {
   const items = await QO.opts.getItems(q);
   if (tok !== QO.token || !QO.open) return;
   QO.items = (items || []).slice(0, 100);
-  QO.sel = QO.first && QO.opts.initialSel >= 0 ? QO.opts.initialSel : 0;
+  QO.sel = QO.first && QO.opts.initialSel >= 0 ? QO.opts.initialSel : Math.max(0, QO.items.findIndex(it => !it.sep));
   QO.first = false;
   renderQuick();
 }
 function renderQuick() {
   const list = $('#quick-list');
   list.replaceChildren(...QO.items.map((it, i) => it.sep ? h('div', { class: 'q-sep' }, it.sep) :
-    h('div', { class: 'qi' + (i === QO.sel ? ' sel' : ''), onmousedown: e => { e.preventDefault(); QO.sel = i; acceptQuick(); }, onmousemove: () => { if (QO.sel !== i) { QO.sel = i; renderQuickSel(); } },
-      html: `${it.icon || ''}<span class="ql">${it.labelHtml || esc(it.label)}</span><span class="qd">${esc(it.detail || '')}</span>${it.kbd ? `<kbd>${esc(it.kbd)}</kbd>` : ''}` })));
+    h('div', { class: 'qi' + (i === QO.sel ? ' sel' : ''), 'data-i': i, onmousedown: e => { e.preventDefault(); QO.sel = i; acceptQuick(); }, onmousemove: () => { if (QO.sel !== i) { QO.sel = i; renderQuickSel(); } },
+      html: `${it.icon || ''}<span class="ql">${it.labelHtml || esc(it.label)}</span><span class="qd">${esc(it.detail || '')}</span>${it.kbd ? `<kbd>${esc(it.kbd)}</kbd>` : ''}${it.checked ? '<span class="qcheck">✓</span>' : ''}` })));
   renderQuickSel();
 }
 function renderQuickSel() {
-  $$('#quick-list .qi').forEach((el, i) => el.classList.toggle('sel', i === QO.sel));
+  $$('#quick-list .qi').forEach(el => el.classList.toggle('sel', +el.dataset.i === QO.sel));
   $('#quick-list .qi.sel')?.scrollIntoView({ block: 'nearest' });
   const it = QO.items[QO.sel];
   if (it && !it.sep && QO.opts.onPreview) QO.opts.onPreview(it);
@@ -1241,18 +1528,131 @@ function fuzzyItems(items, q) {
   return out.sort((a, b) => b._s - a._s);
 }
 
+// ── Popover menus ─────────────────────────────────────────────────────────────
+// Pickers opened by clicking a button appear next to that button; keyboard-invoked ones use the centered palette.
+let lastClick = null;
+const CLICKABLE = 'button, .pill, .sb-item, .chip, .row, .tab, .wl-item, .mi, .pi, .ab, [data-act]';
+document.addEventListener('mousedown', e => {
+  const el = e.target.closest?.(CLICKABLE);
+  lastClick = el ? { rect: el.getBoundingClientRect(), el, t: Date.now() } : null;
+}, true);
+const clickAnchor = () => (lastClick && Date.now() - lastClick.t < 1500 ? lastClick.rect : null);
+
+const POP = { open: false, resolve: null, items: [], view: [], sel: -1, prevFocus: null, anchorEl: null, closedEl: null, closedAt: 0 };
+const selectable = it => it && !it.sep && !it.head && !it.note && !it.disabled;
+
+function popover(anchor, { title, items, search, width = 300, footer } = {}) {
+  const anchorEl = anchor instanceof Element ? anchor : lastClick?.el || null;
+  // A second click on the button that opened the popover closes it instead of reopening it.
+  if (anchorEl && anchorEl === POP.closedEl && Date.now() - POP.closedAt < 300) return Promise.resolve(null);
+  closePopover(null);
+  const rect = anchor instanceof Element ? anchor.getBoundingClientRect() : anchor;
+  return new Promise(resolve => {
+    const pop = $('#popover');
+    Object.assign(POP, { open: true, resolve, items, anchorEl, prevFocus: document.activeElement });
+    anchorEl?.classList.add('open');
+    const withSearch = search ?? items.filter(selectable).length > 10;
+    const withChecks = items.some(it => 'checked' in it);
+    const inp = withSearch ? h('input', { class: 'pop-search', placeholder: 'Search…', spellcheck: 'false' }) : null;
+    const list = h('div', { class: 'pop-list' });
+    pop.replaceChildren(...[title && h('div', { class: 'pop-title' }, title), inp && h('div', { class: 'pop-search-wrap' }, inp), list,
+      footer && h('div', { class: 'pop-foot' }, footer)].filter(Boolean));
+    pop.style.width = Math.min(width, innerWidth - 16) + 'px';
+    POP.render = () => {
+      const q = inp ? inp.value.trim() : '';
+      POP.view = q ? fuzzyItems(items.filter(selectable), q) : items;
+      list.replaceChildren(...(POP.view.length ? POP.view.map((it, i) => {
+        if (it.sep) return h('div', { class: 'pop-sep' });
+        if (it.head) return h('div', { class: 'pop-head' }, it.head);
+        if (it.note) return h('div', { class: 'pop-note ' + (it.tone || ''), html: `<span class="dot"></span><span>${esc(it.note)}</span>` });
+        return h('div', { class: 'pi' + (it.danger ? ' danger' : '') + (it.disabled ? ' disabled' : ''), title: it.title, 'data-i': i,
+          onmousemove: () => { if (POP.sel !== i && !it.disabled) { POP.sel = i; markPopSel(); } },
+          onclick: () => { if (!it.disabled) closePopover(it); },
+          html: (it.icon !== undefined ? `<span class="pi-ic">${it.icon}</span>` : '') +
+            `<span class="pi-main"><span class="pi-label">${it.labelHtml || esc(it.label)}</span>${it.desc ? `<span class="pi-desc">${esc(it.desc)}</span>` : ''}</span>` +
+            (it.kbd ? `<kbd>${esc(it.kbd)}</kbd>` : it.right ? `<span class="pi-right">${esc(it.right)}</span>` : '') +
+            (withChecks ? `<span class="pi-check">${it.checked ? '✓' : ''}</span>` : '') });
+      }) : [h('div', { class: 'pop-empty' }, 'No matches')]));
+      const current = POP.view.findIndex(it => it.checked && selectable(it));
+      POP.sel = !q && current >= 0 ? current : POP.view.findIndex(selectable);
+      markPopSel();
+    };
+    inp?.addEventListener('input', POP.render);
+    POP.render();
+    pop.classList.add('open');
+    placePopover(rect);
+    (inp || pop).focus();
+  });
+}
+function placePopover(r) {
+  const pop = $('#popover');
+  pop.style.top = pop.style.bottom = '';
+  if (!r) {
+    pop.style.left = Math.max(8, (innerWidth - pop.offsetWidth) / 2) + 'px'; pop.style.top = '60px'; pop.style.maxHeight = 'calc(100vh - 80px)';
+    pop.dataset.side = 'below'; return;
+  }
+  const gap = 6, below = innerHeight - r.bottom - gap - 8, above = r.top - gap - 8;
+  pop.style.maxHeight = Math.max(below, above) + 'px';
+  const goBelow = pop.offsetHeight <= below || below >= above;
+  pop.style.maxHeight = (goBelow ? below : above) + 'px';
+  if (goBelow) pop.style.top = r.bottom + gap + 'px';
+  else { pop.style.top = 'auto'; pop.style.bottom = innerHeight - r.top + gap + 'px'; }
+  const pw = pop.offsetWidth, left = r.left + r.width / 2 > innerWidth / 2 ? r.right - pw : r.left;
+  pop.style.left = Math.max(8, Math.min(left, innerWidth - pw - 8)) + 'px';
+  pop.dataset.side = goBelow ? 'below' : 'above';
+}
+function markPopSel() {
+  $$('#popover .pi').forEach(el => el.classList.toggle('sel', +el.dataset.i === POP.sel));
+  $('#popover .pi.sel')?.scrollIntoView({ block: 'nearest' });
+}
+function closePopover(item, viaOutsideClick = false) {
+  if (!POP.open) return;
+  const pop = $('#popover'), hadFocus = pop.contains(document.activeElement);
+  POP.open = false;
+  pop.classList.remove('open');
+  POP.anchorEl?.classList.remove('open');
+  if (viaOutsideClick) { POP.closedEl = POP.anchorEl; POP.closedAt = Date.now(); }
+  if (hadFocus && POP.prevFocus && document.contains(POP.prevFocus)) POP.prevFocus.focus();
+  const r = POP.resolve; POP.resolve = null;
+  r(item ? (item.value !== undefined ? item.value : item.label) : null);
+}
+window.addEventListener('keydown', e => {
+  if (!POP.open) {
+    if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) lastClick = null;
+    return;
+  }
+  const move = d => {
+    const v = POP.view;
+    let i = POP.sel;
+    for (let n = 0; n < v.length; n++) { i = (i + d + v.length) % v.length; if (selectable(v[i])) break; }
+    POP.sel = i; markPopSel();
+  };
+  if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) move(1);
+  else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) move(-1);
+  else if (e.key === 'Enter') { if (selectable(POP.view[POP.sel])) closePopover(POP.view[POP.sel]); }
+  else if (e.key === 'Escape') closePopover(null);
+  else return;
+  e.preventDefault(); e.stopImmediatePropagation();
+}, true);
+document.addEventListener('mousedown', e => { if (POP.open && !e.target.closest('#popover')) closePopover(null, true); }, true);
+window.addEventListener('resize', () => closePopover(null));
+window.addEventListener('blur', () => closePopover(null));
+
 async function askInput(title, value = '', hint = 'Press Enter to confirm or Escape to cancel') {
   const r = await quick({ title, value, selectValue: true, placeholder: title, getItems: () => [{ label: hint, icon: icon('chev') }] });
   const v = r?.query?.trim();
   return v || null;
 }
-async function askPick(title, items) {
-  const norm = items.map(it => typeof it === 'string' ? { label: it, value: it } : { ...it, value: it.value ?? it.label });
-  const r = await quick({ title, placeholder: title, getItems: q => fuzzyItems(norm, q) });
+async function askPick(title, items, opts = {}) {
+  const norm = items.map(it => typeof it === 'string' ? { label: it, value: it }
+    : { ...it, value: it.value ?? it.label, desc: it.desc ?? it.detail, detail: it.detail ?? it.desc });
+  const anchor = opts.anchor || clickAnchor();
+  if (anchor) return popover(anchor, { title, items: norm, search: opts.search, width: opts.width, footer: opts.footer });
+  const r = await quick({ title, placeholder: title, anchor: null, getItems: q => fuzzyItems(norm.filter(selectable), q) });
   return r?.item ? r.item.value : null;
 }
 async function askConfirm(message, okLabel = 'OK') {
-  return (await askPick(message, [{ label: okLabel, value: true }, { label: 'Cancel', value: false }])) === true;
+  return (await askPick(message, [{ label: okLabel, value: true }, { label: 'Cancel', value: false }], { width: 320 })) === true;
 }
 
 let fileIndex = { root: null, files: [], time: 0 };
@@ -1284,27 +1684,78 @@ async function fileItems(q) {
   return out.sort((a, b) => b._s - a._s).slice(0, 80);
 }
 
+function symbolItems(q) {
+  const m = editor.getModel();
+  if (!m) return [{ label: 'Open a file to search its symbols' }];
+  const items = flattenSymbols(extractSymbols(m)).map(s => ({ label: s.name, detail: `${s.kind} · line ${s.line}`, icon: `<span class="ol-kind ok-${s.kind}">${KIND_LABEL[s.kind]}</span>`, symLine: s.line, symCol: s.col }));
+  return items.length ? fuzzyItems(items, q) : [{ label: 'No symbols found in this file' }];
+}
+function acceptQuickItem(item) {
+  if (!item) return;
+  if (item.cmd) runCommand(item.cmd);
+  else if (item.symLine && editor.getModel()) { editor.revealLineInCenter(item.symLine); editor.setPosition({ lineNumber: item.symLine, column: item.symCol || 1 }); editor.focus(); }
+  else if (item.line && !isNaN(item.line) && editor.getModel()) { editor.revealLineInCenter(item.line); editor.setPosition({ lineNumber: item.line, column: 1 }); editor.focus(); }
+  else if (item.path) openFile(item.path);
+}
 async function quickOpen(prefix = '') {
-  const r = await quick({ value: prefix, placeholder: 'Search files by name   ·   > run a command   ·   : go to line', getItems: async q => {
+  const r = await quick({ value: prefix, anchor: null, placeholder: 'Search files   ·   > commands   ·   @ symbols   ·   : go to line', getItems: async q => {
     if (q.startsWith('>')) return commandItems(q.slice(1).trim());
+    if (q.startsWith('@')) return symbolItems(q.slice(1).trim());
     if (q.startsWith(':')) { const n = parseInt(q.slice(1)); return [{ label: isNaN(n) ? 'Type a line number to go to' : `Go to line ${n}`, line: n, icon: icon('chev') }]; }
     try { return await fileItems(q); } catch (e) { return [{ label: e.message }]; }
   } });
-  if (!r?.item) return;
-  if (r.item.cmd) runCommand(r.item.cmd);
-  else if (r.item.line && !isNaN(r.item.line) && editor.getModel()) { editor.revealLineInCenter(r.item.line); editor.setPosition({ lineNumber: r.item.line, column: 1 }); editor.focus(); }
-  else if (r.item.path) openFile(r.item.path);
+  acceptQuickItem(r?.item);
+}
+
+// JetBrains-style "Search Everywhere": files, symbols in the open file and commands in one list.
+async function searchEverywhere() {
+  const r = await quick({ anchor: null, title: 'Search Everywhere', placeholder: 'Files, symbols and commands', getItems: async q => {
+    q = q.trim();
+    if (!q) {
+      const recent = (S.recentFiles || []).filter(p => p !== tabs.get(active)?.path).slice(0, 7)
+        .map(p => ({ label: basename(p), detail: tilde(dirname(p)), icon: fileIcon(basename(p)), path: p }));
+      return [...(recent.length ? [{ sep: 'Recent files' }, ...recent] : []), { sep: 'Commands' }, ...commandItems('').slice(0, 6)];
+    }
+    const files = (await fileItems(q).catch(() => [])).slice(0, 8);
+    const syms = editor.getModel() ? symbolItems(q).filter(i => i.symLine).slice(0, 6) : [];
+    const cmds = commandItems(q).slice(0, 6);
+    const out = [...(files.length ? [{ sep: 'Files' }, ...files] : []), ...(syms.length ? [{ sep: 'Symbols in this file' }, ...syms] : []), ...(cmds.length ? [{ sep: 'Commands' }, ...cmds] : [])];
+    return out.length ? out : [{ label: `Nothing matches "${q}"` }];
+  } });
+  acceptQuickItem(r?.item);
+}
+let lastShiftAt = 0;
+window.addEventListener('keydown', e => {
+  if (e.key !== 'Shift' || e.repeat || e.ctrlKey || e.altKey || e.metaKey) { if (e.key !== 'Shift') lastShiftAt = 0; return; }
+  if (Date.now() - lastShiftAt < 400 && !QO.open && !POP.open && !reviewOpen) { lastShiftAt = 0; searchEverywhere(); }
+  else lastShiftAt = Date.now();
+}, true);
+
+async function recentFilesPicker() {
+  const items = (S.recentFiles || []).filter(p => p !== tabs.get(active)?.path)
+    .map(p => ({ label: basename(p), detail: tilde(dirname(p)), icon: fileIcon(basename(p)), path: p }));
+  const r = await quick({ anchor: null, title: 'Recent Files', placeholder: 'Recently opened files', getItems: q => fuzzyItems(items, q.trim()) });
+  if (r?.item?.path) openFile(r.item.path);
+}
+async function recentFoldersPicker() {
+  const items = (S.recentFolders || []).filter(p => p !== S.cwd).map(p => ({ label: basename(p), detail: tilde(p), icon: folderIcon(false), path: p }));
+  if (!items.length) { toast('No recent folders yet', 'warn'); return; }
+  const r = await quick({ title: 'Open Recent Folder', placeholder: 'Recently opened folders', getItems: q => fuzzyItems(items, q.trim()) });
+  if (r?.item?.path) setCwd(r.item.path);
 }
 
 async function pickFolder(start = S.cwd) {
-  const r = await quick({ title: 'Open Folder', placeholder: 'Folder path — Tab to complete', value: tilde(start).replace(/\/?$/, '/'),
+  const initial = tilde(start).replace(/\/?$/, '/');
+  const r = await quick({ title: 'Open Folder', placeholder: 'Folder path — Tab to complete', value: initial,
     getItems: async q => {
       const full = untilde(q || '/'), dir = full.endsWith('/') ? full : dirname(full), prefix = full.endsWith('/') ? '' : basename(full);
       let ents = [];
       try { ents = (await api(`/api/files?path=${enc(dir)}&hidden=${prefix.startsWith('.') ? 1 : 0}`)).filter(e => e.is_dir); } catch {}
       const target = full.replace(/(.)\/+$/, '$1') || '/';
+      const recent = q === initial ? (S.recentFolders || []).filter(p => p !== S.cwd).slice(0, 6) : [];
       return [{ label: `Open ${tilde(target)}`, open: target, icon: icon('check') },
-        ...ents.filter(e => e.name.toLowerCase().startsWith(prefix.toLowerCase())).map(e => ({ label: e.name, detail: tilde(e.path), icon: folderIcon(false), dir: e.path }))];
+        ...ents.filter(e => e.name.toLowerCase().startsWith(prefix.toLowerCase())).map(e => ({ label: e.name, detail: tilde(e.path), icon: folderIcon(false), dir: e.path })),
+        ...(recent.length ? [{ sep: 'Recent folders' }, ...recent.map(p => ({ label: basename(p), detail: tilde(p), icon: icon('history'), open: p }))] : [])];
     },
     onAccept: item => { if (item?.dir) { setQuickValue(tilde(item.dir) + '/'); return false; } },
   });
@@ -1470,15 +1921,22 @@ const SUGGESTIONS = [
 function getSystemPrompt() {
   const t = tabs.get(active);
   let ctx = '';
-  if (t?.kind === 'text') {
+  if (t?.kind === 'text' && S.shareActiveFile !== false) {
     ctx = `\nThe user has ${t.path} open in the editor (${t.model.getLanguageId()}).`;
     const sel = editor.getSelection();
     if (sel && !sel.isEmpty()) ctx += ` Lines ${sel.startLineNumber}-${sel.endLineNumber} are selected.`;
   }
+  let project = '';
+  if (fileIndex.root === S.cwd && fileIndex.files.length) {
+    const shown = fileIndex.files.slice(0, 200);
+    project = `\nProject files (${fileIndex.files.length}${fileIndex.files.length > shown.length ? `, first ${shown.length} shown` : ''}):\n${shown.join('\n')}\n`;
+  }
   return `You are ocode, an expert AI coding assistant built into the user's code editor, with full file system access.\n` +
-    `Working directory: ${S.cwd}${ctx}\nEffort level: ${S.effort}. ${EFFORT_PROMPTS[S.effort] || ''}\n` +
+    `Working directory: ${S.cwd}${ctx}\n${project}Effort level: ${S.effort}. ${EFFORT_PROMPTS[S.effort] || ''}\n` +
     `Tools: read_file, write_file, edit_file, list_files, run_command. Use them to do the work rather than describing it. ` +
-    `Always read a file before editing it and prefer edit_file for small changes. Reply in Markdown and put code in fenced blocks with a language tag.`;
+    `You can read and edit ANY file in the project, not just the open one. When a change affects several files (imports, callers, ` +
+    `tests, config, docs), update all of them. Always read a file before editing it and prefer edit_file for small changes. ` +
+    `Reply in Markdown and put code in fenced blocks with a language tag.`;
 }
 
 function renderChatEmpty() {
@@ -1609,8 +2067,9 @@ async function sendChat(text) {
   abortCtl = new AbortController();
   let aiText = '', lastTool = null;
   try {
+    await getFileIndex().catch(() => {});
     const resp = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: abortCtl.signal,
-      body: JSON.stringify({ messages: chatMessages, model: S.model, cwd: S.cwd, system: getSystemPrompt() }) });
+      body: JSON.stringify({ messages: chatMessages, model: S.model, cwd: S.cwd, system: getSystemPrompt(), think: thinkOn() }) });
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
     for await (const ev of sse(resp)) {
       if (ev.type === 'message') { aiText = ev.content || ''; turn.body.append(renderMarkdown(aiText || '_(empty response)_')); }
@@ -1646,8 +2105,8 @@ const autosizeInput = () => { const i = $('#chat-input'); i.style.height = 'auto
 
 // Slash commands
 const SLASH = [
-  { name: 'effort', args: 'low|medium|high|max', desc: 'How hard the model thinks', run: a => a[0] ? setEffort(a[0]) : runCommand('ai.effort') },
-  { name: 'model', args: '[name]', desc: 'Switch model', run: a => a.length ? setModelByName(a.join(' ')) : runCommand('ai.model') },
+  { name: 'effort', args: 'low|medium|high|max', desc: 'How hard the model thinks', run: a => a[0] ? setEffort(a[0]) : runCommand('ai.effort', $('#ci-effort')) },
+  { name: 'model', args: '[name]', desc: 'Switch model', run: a => a.length ? setModelByName(a.join(' ')) : runCommand('ai.model', $('#ci-model')) },
   { name: 'theme', args: '[name]', desc: 'Change color theme', run: a => { if (!a.length) return pickTheme(); const id = Object.keys(THEMES).find(k => k.includes(a.join('-').toLowerCase()) || THEMES[k].label.toLowerCase().includes(a.join(' ').toLowerCase())); id ? setSettings({ theme: id }) : appendSystem(`No theme matching "${esc(a.join(' '))}"`); } },
   { name: 'cwd', args: '[path]', desc: 'Change working folder', run: async a => { const p = a.length ? a.join(' ') : await pickFolder(); if (p) { await setCwd(p); appendSystem(`Working folder → <code>${esc(tilde(S.cwd))}</code>`); } } },
   { name: 'clear', args: '', desc: 'Clear the conversation', run: () => newChat() },
@@ -1657,6 +2116,7 @@ const SLASH = [
   { name: 'run', args: '<command>', desc: 'Run a command in the terminal', run: a => a.length ? runInTerminal(a.join(' ')) : appendSystem('Usage: <code>/run &lt;command&gt;</code>') },
   { name: 'explain', args: '', desc: 'Explain the open file or selection', run: () => runCommand('ai.explainSelection') },
   { name: 'fix', args: '', desc: 'Fix bugs in the open file or selection', run: () => runCommand('ai.fixSelection') },
+  { name: 'edit', args: '<what to change>', desc: 'Edit multiple files, with a review', run: a => runMultiEdit({ instruction: a.join(' ') || undefined }) },
   { name: 'settings', args: '', desc: 'Open settings', run: () => showView('settings', true) },
   { name: 'plugins', args: '', desc: 'Manage plugins', run: () => showView('plugins', true) },
   { name: 'help', args: '', desc: 'List commands and shortcuts', run: () => slashHelp() },
@@ -1719,7 +2179,46 @@ function setModelByName(q) {
   if (!m) { appendSystem(`No model matching "${esc(q)}". Installed: ${MODELS.map(m => `<code>${esc(shortModel(m))}</code>`).join(', ')}`); return; }
   setSettings({ model: m }); appendSystem(`Model → <b>${esc(shortModel(m))}</b>`);
 }
-const shortModel = m => (m || '').split('/').pop().replace(/-GGUF/i, '');
+function modelParts(m = '') {
+  const [base, tag = ''] = m.replace(/^[\w.-]+\.[a-z]{2,}\/[^/]+\//i, '').split(':');
+  let name = base.split('/').pop().replace(/-gguf$/i, '').replace(/[-_]+/g, ' ').replace(/\s+instruct\b/i, '')
+    .replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/\b(\d+(?:\.\d+)?)b\b/gi, '$1B').replace(/\bVl\b/g, 'VL');
+  const quant = /(^|[-_.])(i?q\d|f16|bf16|fp16|f32)/i.test(tag) ? tag.toUpperCase() : '';
+  if (tag && !quant && tag !== 'latest') name += ' ' + tag.replace(/\b(\d+(?:\.\d+)?)b\b/gi, '$1B');
+  return { name, quant };
+}
+const shortModel = m => modelParts(m).name;
+const fmtSize = b => (b >= 1e9 ? (b / 1e9).toFixed(1) + ' GB' : b >= 1e6 ? Math.round(b / 1e6) + ' MB' : '');
+
+const EFFORT_LEVELS = ['low', 'medium', 'high', 'max'];
+const EFFORT_INFO = {
+  low: ['Low', 'Quick answers, minimal explanation'],
+  medium: ['Medium', 'Balanced — explains key decisions'],
+  high: ['High', 'Thinks step by step, more thorough'],
+  max: ['Max', 'Exhaustive — weighs options, checks its work'],
+};
+function effortIcon(lvl) {
+  const n = EFFORT_LEVELS.indexOf(lvl) + 1;
+  return `<svg class="ic effort-ic effort-${lvl}" viewBox="0 0 16 16">${[0, 1, 2, 3].map(i =>
+    `<rect x="${1 + i * 3.8}" y="${12 - i * 3}" width="2.6" height="${3 + i * 3}" rx="1" style="fill:currentColor;stroke:none;opacity:${i < n ? 1 : 0.25}"/>`).join('')}</svg>`;
+}
+async function pickEffort(anchor) {
+  const v = await askPick('Effort', EFFORT_LEVELS.map(k => ({ value: k, label: EFFORT_INFO[k][0], desc: EFFORT_INFO[k][1], icon: effortIcon(k), checked: S.effort === k })),
+    { anchor: anchor || clickAnchor(), width: 320, footer: 'How much ocode thinks before it acts' });
+  if (v) setSettings({ effort: v });
+}
+async function pickModel(anchor) {
+  anchor = anchor || clickAnchor();
+  await loadModels();
+  if (!MODELS.length) { toast("Couldn't reach Ollama to list models", 'error'); return; }
+  const items = MODELS.map(m => {
+    const p = modelParts(m), info = MODEL_INFO[m] || {};
+    return { value: m, title: m, label: p.name, icon: icon('sparkle'), checked: m === S.model,
+      desc: [info.parameter_size, p.quant || info.quantization_level, fmtSize(info.size || 0)].filter(x => x && x !== 'unknown').join(' · ') || m };
+  });
+  const v = await askPick('Chat model', items, { anchor, width: 340, footer: 'Used for chat, Ctrl+K edits and AI fixes' });
+  if (v) setSettings({ model: v });
+}
 
 // ── AI: autocomplete, inline edits, quick fixes ───────────────────────────────
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -1762,19 +2261,26 @@ function renderAiStatus() {
   el.title = tip;
   el.innerHTML = `${icon('sparkle')}<span>${S.aiComplete === false ? 'AI off' : cls === 'warn' ? 'AI offline' : 'AI'}</span>`;
 }
-function aiStatusMenu(e) {
-  const st = AIC.status || {}, r = e.currentTarget.getBoundingClientRect();
-  showMenu(r.left, r.top, [
-    { label: S.aiComplete === false ? 'Turn On AI Autocomplete' : 'Turn Off AI Autocomplete', run: () => runCommand('ai.toggleComplete') },
-    { label: 'Suggest Code Here', kbd: 'Alt+\\', run: () => runCommand('ai.triggerComplete') },
-    { label: 'Edit with ocode…', kbd: 'Ctrl+K', run: () => runCommand('ai.inlineEdit') },
-    { label: 'Fix All Problems in File', run: () => runCommand('ai.fixFile') },
-    '-',
-    { label: 'Choose Autocomplete Model…', run: () => runCommand('ai.completeModel') },
-    ...(st.online && !st.hasModel ? [{ label: `Download ${st.model}…`, run: () => runCommand('ai.pullCompleteModel') }] : []),
-    { label: 'Autocomplete Settings', run: () => showView('settings', true) },
-    { label: 'Re-check Server', run: checkCompleteStatus },
-  ]);
+async function aiStatusMenu(e) {
+  const anchor = e?.currentTarget || clickAnchor(), st = AIC.status || {}, on = S.aiComplete !== false, file = !!editor.getModel();
+  const host = (st.host || S.completeHost || '').replace(/^https?:\/\//, '');
+  const [note, tone] = !on ? ['Autocomplete is off', ''] : !st.online ? [`Server ${host} isn't running`, 'warn']
+    : !st.hasModel ? [`${shortModel(st.model)} isn't downloaded`, 'warn'] : [`${shortModel(st.model)} · ${host}`, 'ok'];
+  const v = await askPick('AI autocomplete', [
+    { note, tone },
+    { label: on ? 'Turn off autocomplete' : 'Turn on autocomplete', value: 'toggle', icon: icon(on ? 'ban' : 'check') },
+    { label: 'Suggest code here', kbd: 'Alt+\\', value: 'trigger', icon: icon('sparkle'), disabled: !file || !on },
+    { label: 'Edit with ocode…', kbd: 'Ctrl+K', value: 'edit', icon: icon('edit'), disabled: !file },
+    { label: 'Edit multiple files…', kbd: 'Ctrl+I', value: 'multi', icon: icon('files') },
+    { label: 'Fix all problems in file', value: 'fix', icon: icon('zap'), disabled: !file },
+    { sep: true },
+    { label: 'Autocomplete model', desc: shortModel(S.completeModel), value: 'model', icon: icon('blocks') },
+    ...(st.online && !st.hasModel ? [{ label: `Download ${shortModel(st.model)}`, value: 'pull', icon: icon('insert') }] : []),
+    { label: 'Settings', value: 'settings', icon: icon('sliders') },
+  ], { anchor, width: 300 });
+  ({ toggle: () => runCommand('ai.toggleComplete'), trigger: () => runCommand('ai.triggerComplete'), edit: () => runCommand('ai.inlineEdit'), multi: () => runCommand('ai.multiEdit'),
+    fix: () => runCommand('ai.fixFile'), model: () => pickCompleteModel(anchor), pull: () => runCommand('ai.pullCompleteModel'),
+    settings: () => showView('settings', true) })[v]?.();
 }
 
 const bracketBalance = s => { let b = 0; for (const c of s) { if ('([{'.includes(c)) b++; else if (')]}'.includes(c)) b--; } return b; };
@@ -1930,6 +2436,9 @@ const AI_EDIT_SYSTEM = "You are a precise code-editing engine inside a code edit
   "Reply with exactly ONE fenced code block containing only the new code that replaces <selection> (if the selection is empty: the code to insert at that point). " +
   "Never repeat the before/after context. Write nothing before or after the code block. Match the file's existing style and indentation. Write complete, working code.";
 const FENCED_BLOCK = /```[^\n]*\n[\s\S]*?```/;
+// Thinking models (Qwen3 etc.) only reason first on High/Max effort; reasoning tokens share the output budget.
+const thinkOn = () => S.effort === 'high' || S.effort === 'max';
+const thinkBudget = () => (thinkOn() ? 6000 : 0);
 
 async function aiEdit({ range, instruction, title } = {}) {
   const t = tabs.get(active);
@@ -1950,7 +2459,7 @@ async function aiEdit({ range, instruction, title } = {}) {
   const prog = showAiProgress(isInsert ? 'ocode is writing code…' : 'ocode is editing…');
   let out = '', gotBlock = false;
   try {
-    await streamText('/api/ai', { system: AI_EDIT_SYSTEM, temperature: 0.2, maxTokens: Math.ceil(original.length / 3) + (isInsert ? 1500 : 600),
+    await streamText('/api/ai', { system: AI_EDIT_SYSTEM, temperature: 0.2, think: thinkOn(), maxTokens: Math.ceil(original.length / 3) + (isInsert ? 1500 : 600) + thinkBudget(),
       prompt: `File: ${rel(t.path)} (${lang})\n\n<before>\n${before}\n</before>\n<selection>\n${original}\n</selection>\n<after>\n${after}\n</after>\n\n` +
         `Instruction: ${instruction}\n\nReply with one \`\`\`${lang} code block only.` },
       prog.ctl.signal, txt => {
@@ -1979,6 +2488,8 @@ async function aiEdit({ range, instruction, title } = {}) {
   const finalRange = model.getDecorationRange(deco) || target;
   model.deltaDecorations([deco], []);
   if (result == null) return;
+  if (isDirty(t)) await saveTab(t);
+  await post('/api/history/snap', { paths: [t.path], label: 'ai' }).catch(() => {});
   if (editor.getModel() === model) {
     editor.pushUndoStop();
     editor.executeEdits('ocode', [{ range: finalRange, text: result, forceMoveMarkers: true }]);
@@ -2020,14 +2531,908 @@ async function pullCompleteModel() {
   prog.done();
   checkCompleteStatus();
 }
-async function pickCompleteModel() {
+async function pickCompleteModel(anchor) {
+  anchor = anchor instanceof Element || anchor?.width !== undefined ? anchor : clickAnchor();
   await checkCompleteStatus();
   const st = AIC.status || {}, installed = st.models || [];
   const suggested = ['qwen2.5-coder:1.5b-base', 'qwen2.5-coder:3b-base', 'qwen2.5-coder:7b-base', 'deepseek-coder:1.3b-base', 'starcoder2:3b'];
-  const v = await askPick(`Autocomplete model on ${st.host || S.completeHost}`, [
-    ...installed.map(m => ({ label: m, detail: m === S.completeModel ? 'installed · current' : 'installed', value: m })),
-    ...suggested.filter(m => !installed.includes(m)).map(m => ({ label: m, detail: 'not downloaded yet', value: m }))]);
+  const v = await askPick('Autocomplete model', [
+    ...(installed.length ? [{ head: 'Installed' }] : []),
+    ...installed.map(m => ({ label: shortModel(m), desc: m, value: m, icon: icon('sparkle'), checked: m === S.completeModel })),
+    { head: 'Download' },
+    ...suggested.filter(m => !installed.includes(m)).map(m => ({ label: shortModel(m), desc: `${m} — not downloaded yet`, value: m, icon: icon('insert'), checked: m === S.completeModel }))],
+    { anchor, width: 320, footer: `Runs on ${(st.host || S.completeHost || '').replace(/^https?:\/\//, '')}` });
   if (v) setSettings({ completeModel: v });
+}
+
+// ── Multi-file edits (Ctrl+I) ─────────────────────────────────────────────────
+// Plan which files a change touches, write each one, then review every diff before anything is saved.
+const ME = { open: false, files: [], cur: -1, ctl: null, root: '', last: null, working: false };
+let multiDiff = null, multiEmpty = null;
+const BINARY_EXT = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'avif', 'pdf', 'zip', 'gz', 'tgz', 'xz', 'bz2', '7z', 'rar', 'zst', 'mp3', 'mp4',
+  'mkv', 'webm', 'wav', 'flac', 'ogg', 'woff', 'woff2', 'ttf', 'otf', 'so', 'o', 'a', 'bin', 'exe', 'dll', 'class', 'jar', 'pyc', 'gguf', 'safetensors', 'onnx', 'lock']);
+const FULL_REWRITE_MAX_LINES = 160;
+const MULTI_PLAN_SYSTEM = 'You plan code changes across a software project. Given the file list, some file contents, search results and an instruction, ' +
+  'decide exactly which files must be edited, created or deleted to fulfil the instruction. Include every file that needs a change ' +
+  '(callers of renamed functions, imports, tests, config, docs) and nothing else. Use paths exactly as listed, relative to the project root; ' +
+  'new files may use new paths. Reply with JSON only.';
+const PLAN_SCHEMA = { type: 'object', required: ['files'], properties: { files: { type: 'array', items: { type: 'object', required: ['path', 'action', 'reason'],
+  properties: { path: { type: 'string' }, action: { type: 'string', enum: ['edit', 'create', 'delete'] }, reason: { type: 'string' } } } } } };
+const FULL_SYSTEM = 'You are a precise code-editing engine working on one file of a multi-file change. Reply with exactly ONE fenced code block ' +
+  'containing the complete new content of the file, and nothing before or after it. Keep everything that should not change exactly as it is.';
+const BLOCKS_SYSTEM = 'You are a precise code-editing engine working on one file of a multi-file change. Reply only with edit blocks in exactly this format:\n' +
+  '<<<<<<< SEARCH\n(lines copied exactly from the current file)\n=======\n(replacement lines)\n>>>>>>> REPLACE\n' +
+  'The SEARCH part must match the current file exactly, including indentation. Use several small blocks rather than one big one. No other text.';
+
+function normPath(p) {
+  const out = [];
+  for (const seg of p.split('/')) { if (!seg || seg === '.') continue; if (seg === '..') out.pop(); else out.push(seg); }
+  return '/' + out.join('/');
+}
+function langForPath(p) {
+  const name = basename(p).toLowerCase(), ext = '.' + extOf(name);
+  return monaco.languages.getLanguages().find(l => (l.filenames || []).some(f => f.toLowerCase() === name) || (l.extensions || []).includes(ext))?.id || 'plaintext';
+}
+function lineDelta(a, b) {
+  if (!a) return { adds: b ? b.split('\n').length : 0, dels: 0 };
+  const count = new Map();
+  for (const l of a.split('\n')) count.set(l, (count.get(l) || 0) + 1);
+  let adds = 0, dels = 0;
+  for (const l of b.split('\n')) { const c = count.get(l); if (c) count.set(l, c - 1); else adds++; }
+  for (const c of count.values()) dels += c;
+  return { adds, dels };
+}
+function extractCode(t, greedy) {
+  t = t.replace(/\r/g, '');
+  const open = t.match(/```[^\n]*\n/);
+  if (!open) return t.replace(/^\n+/, '').replace(/\s+$/, '');
+  const start = open.index + open[0].length;
+  const end = greedy ? t.lastIndexOf('```') : t.indexOf('```', start);
+  return t.slice(start, end >= start ? end : undefined).replace(/\n$/, '');
+}
+function matchLoose(text, search) {
+  const tl = text.split('\n'), sl = search.split('\n').map(s => s.trim());
+  while (sl.length && !sl[0]) sl.shift();
+  while (sl.length && !sl[sl.length - 1]) sl.pop();
+  if (!sl.length) return null;
+  for (let i = 0; i + sl.length <= tl.length; i++) {
+    let ok = true;
+    for (let j = 0; j < sl.length && ok; j++) ok = tl[i + j].trim() === sl[j];
+    if (ok) {
+      const start = i ? tl.slice(0, i).join('\n').length + 1 : 0;
+      return { start, end: start + tl.slice(i, i + sl.length).join('\n').length };
+    }
+  }
+  return null;
+}
+function applyEditBlocks(original, out) {
+  const re = /<{5,9} ?SEARCH\n([\s\S]*?)\n?={5,9}\n([\s\S]*?)\n?>{5,9} ?REPLACE/g;
+  let text = original, applied = 0, failed = 0, m;
+  while ((m = re.exec(out))) {
+    const [, search, replace] = m;
+    if (!search.trim()) { failed++; continue; }
+    if (text.includes(search)) { text = text.replace(search, () => replace); applied++; continue; }
+    const loose = matchLoose(text, search);
+    if (loose) { text = text.slice(0, loose.start) + replace + text.slice(loose.end); applied++; } else failed++;
+  }
+  return { text, applied, failed, error: applied ? '' : failed ? "None of ocode's edits matched the file" : 'ocode returned no edits for this file' };
+}
+function gatherContext(root, exclude, budget = 24000) {
+  let out = '';
+  for (const p of [active, ...tabs.keys()].filter((p, i, a) => p && a.indexOf(p) === i)) {
+    const t = tabs.get(p);
+    if (t?.kind !== 'text' || p === exclude || !p.startsWith(root + '/') || (p === active && S.shareActiveFile === false)) continue;
+    const text = t.model.getValue().slice(0, Math.min(8000, budget));
+    if (!text) continue;
+    out += `<file path="${p.slice(root.length + 1)}">\n${text}\n</file>\n\n`;
+    budget -= text.length;
+    if (budget < 1000) break;
+  }
+  return out;
+}
+async function searchHints(instruction, root) {
+  const tokens = new Set();
+  for (const m of instruction.matchAll(/`([^`]{2,60})`|"([^"]{2,60})"|'([^']{2,60})'/g)) tokens.add(m[1] || m[2] || m[3]);
+  for (const m of instruction.matchAll(/\b([a-z]+[A-Z]\w*|[A-Za-z]\w*_\w+|[A-Z][a-z]+[A-Z]\w*)\b/g)) tokens.add(m[1]);
+  let out = '';
+  for (const tok of [...tokens].slice(0, 5)) {
+    try {
+      const res = await api(`/api/search?q=${enc(tok)}&path=${enc(root)}&case=1`);
+      if (res.length) out += `Search results for "${tok}":\n` + res.slice(0, 15).map(r => `${r.path.slice(root.length + 1)}:${r.line}: ${r.text.trim().slice(0, 160)}`).join('\n') + '\n\n';
+    } catch {}
+  }
+  return out;
+}
+
+async function planMultiEdit(instruction, root, signal) {
+  const { files } = await api('/api/find-files?path=' + enc(root));
+  const textFiles = files.filter(f => !BINARY_EXT.has(extOf(basename(f))));
+  const listed = textFiles.slice(0, 400), known = new Set(textFiles);
+  const prompt = `Project folder: ${basename(root)}\n\nFiles (${textFiles.length}${textFiles.length > listed.length ? `, first ${listed.length} shown` : ''}):\n${listed.join('\n')}\n\n` +
+    `${gatherContext(root)}${await searchHints(instruction, root)}Instruction: ${instruction}\n\nList every file to edit, create or delete.`;
+  const out = await streamText('/api/ai', { system: MULTI_PLAN_SYSTEM, prompt, format: PLAN_SCHEMA, temperature: 0.1, think: thinkOn(), maxTokens: 1500 + thinkBudget() }, signal);
+  let data;
+  try { data = JSON.parse(out); } catch { const m = out.match(/\{[\s\S]*\}/); try { data = m ? JSON.parse(m[0]) : {}; } catch { data = {}; } }
+  const seen = new Set(), plan = [];
+  for (const f of data.files || []) {
+    const raw = String(f.path || '').trim();
+    if (!raw) continue;
+    const abs = normPath(raw.startsWith('/') ? raw : join(root, raw));
+    if (seen.has(abs) || !abs.startsWith(root + '/')) continue;
+    seen.add(abs);
+    const rel = abs.slice(root.length + 1), exists = known.has(rel) || tabs.has(abs);
+    let action = ['edit', 'create', 'delete'].includes(f.action) ? f.action : exists ? 'edit' : 'create';
+    if (action === 'edit' && !exists) action = 'create';
+    if (action === 'create' && exists) action = 'edit';
+    if (action === 'delete' && !exists) continue;
+    plan.push({ rel, abs, action, existed: exists, reason: String(f.reason || '').slice(0, 300) });
+    if (plan.length >= 12) break;
+  }
+  return plan;
+}
+
+async function generateFileEdit(f, instruction, signal) {
+  const lang = langForPath(f.abs), t = tabs.get(f.abs);
+  let original = '';
+  if (f.existed) original = t?.kind === 'text' ? t.model.getValue() : ((await api('/api/file?path=' + enc(f.abs))).content ?? '');
+  f.originalText = original;
+  f.original = monaco.editor.createModel(original, lang);
+  if (f.action === 'delete') { f.modified = monaco.editor.createModel('', lang); f.state = 'delete'; updateCounts(f); return; }
+  if (original.length > 120000) throw new Error('Too large for a multi-file edit — select a section and use Ctrl+K');
+  const plan = ME.files.map(x => `- ${x.rel} (${x.action}): ${x.reason}`).join('\n');
+  const related = gatherContext(ME.root, f.abs, 8000);
+  const useBlocks = !!original && original.split('\n').length > FULL_REWRITE_MAX_LINES;
+  const greedy = lang === 'markdown' || original.includes('```');
+  const head = `Overall instruction: ${instruction}\n\nPlanned changes:\n${plan}\n\nYou are now handling ${f.rel} (${f.action}): ${f.reason}\n\n` +
+    (related ? `Related files, for reference only:\n${related}` : '');
+  const current = original ? `Current content of ${f.rel}:\n\`\`\`${lang}\n${original}\n\`\`\`\n\n` : '';
+  const req = useBlocks
+    ? { system: BLOCKS_SYSTEM, prompt: `${head}${current}Reply with SEARCH/REPLACE blocks for ${f.rel} only.`, maxTokens: 2500 }
+    : { system: FULL_SYSTEM, prompt: `${head}${current}Reply with the complete new content of ${f.rel} in one \`\`\`${lang} code block.`, maxTokens: Math.ceil(original.length / 3) + 1500 };
+  const ctl = new AbortController(), forward = () => ctl.abort();
+  signal.addEventListener('abort', forward);
+  let out = '', gotBlock = false;
+  try {
+    await streamText('/api/ai', { ...req, temperature: 0.15, think: thinkOn(), maxTokens: req.maxTokens + thinkBudget() }, ctl.signal, txt => {
+      out = txt; f.progress = txt.length; updateMultiRow(f);
+      if (!useBlocks && !greedy && !gotBlock && FENCED_BLOCK.test(txt)) { gotBlock = true; ctl.abort(); }
+    });
+  } catch (e) { if (!(e.name === 'AbortError' && gotBlock)) throw e; }
+  finally { signal.removeEventListener('abort', forward); }
+  let text;
+  if (useBlocks) {
+    const r = applyEditBlocks(original, out);
+    if (!r.applied) throw new Error(r.error);
+    text = r.text;
+    f.note = r.failed ? `${r.failed} edit${r.failed > 1 ? 's' : ''} didn't match the file and ${r.failed > 1 ? 'were' : 'was'} skipped` : '';
+  } else {
+    text = extractCode(out, greedy);
+    if (!text.trim()) throw new Error('ocode returned no code for this file');
+    if ((original.endsWith('\n') || !original) && !text.endsWith('\n')) text += '\n';
+  }
+  f.modified = monaco.editor.createModel(text, lang);
+  f.modified.onDidChangeContent(() => { updateCounts(f); updateMultiRow(f); });
+  updateCounts(f);
+  f.state = text === original ? 'nochange' : f.action === 'create' ? 'new' : 'ready';
+  if (f.state === 'nochange') f.include = false;
+}
+function updateCounts(f) { Object.assign(f, lineDelta(f.originalText || '', f.modified ? f.modified.getValue() : '')); }
+
+const REVIEWABLE = new Set(['ready', 'new', 'delete', 'nochange']);
+function badgeFor(f) {
+  switch (f.state) {
+    case 'working': return `<span class="spin"></span>${f.progress ? `${(f.progress / 1000).toFixed(1)}k` : ''}`;
+    case 'pending': return 'waiting';
+    case 'failed': return '<span class="del">failed</span>';
+    case 'nochange': return 'no change';
+    case 'delete': return `<span class="del">delete</span>`;
+    case 'new': return `<span class="add">new · ${f.adds}</span>`;
+    default: return `<span class="add">+${f.adds}</span><span class="del">−${f.dels}</span>`;
+  }
+}
+function renderMultiFiles() {
+  $('#multi-files').replaceChildren(...ME.files.map((f, i) => {
+    const row = h('div', { class: `mf ${f.state}${i === ME.cur ? ' sel' : ''}`, title: f.error || f.reason, onclick: () => selectMulti(i) },
+      h('input', { type: 'checkbox', checked: f.include && REVIEWABLE.has(f.state), disabled: !REVIEWABLE.has(f.state),
+        onclick: e => e.stopPropagation(), onchange: e => { f.include = e.target.checked; renderMultiButtons(); } }),
+      h('span', { html: fileIcon(basename(f.rel)) }),
+      h('span', { class: 'mf-main' }, h('span', { class: 'mf-name' }, basename(f.rel)), h('span', { class: 'mf-dir' }, f.rel.includes('/') ? dirname(f.rel) : '')),
+      h('span', { class: 'mf-badge', html: badgeFor(f) }));
+    f._row = row;
+    return row;
+  }));
+  renderMultiButtons();
+}
+function updateMultiRow(f) { const b = f._row && $('.mf-badge', f._row); if (b) b.innerHTML = badgeFor(f); }
+function renderMultiButtons() {
+  const n = ME.files.filter(f => f.include && REVIEWABLE.has(f.state) && f.state !== 'nochange').length;
+  const apply = $('#multi-apply');
+  apply.disabled = ME.working || !n;
+  apply.style.opacity = apply.disabled ? '.5' : '';
+  apply.firstChild.textContent = n ? `Apply ${n} file${n > 1 ? 's' : ''}` : 'Apply';
+  $('#multi-stop').style.display = ME.working ? '' : 'none';
+}
+function setMultiStatus(text, busyNow = ME.working) {
+  $('#multi-status').innerHTML = (busyNow ? '<span class="spin"></span>' : '') + esc(text);
+}
+function selectMulti(i) {
+  const f = ME.files[i];
+  if (!f) return;
+  ME.cur = i;
+  $$('#multi-files .mf').forEach((el, j) => el.classList.toggle('sel', j === i));
+  const why = $('#multi-why');
+  why.classList.toggle('err', f.state === 'failed');
+  why.textContent = f.state === 'failed' ? `Couldn't change ${f.rel}: ${f.error}`
+    : f.state === 'working' || f.state === 'pending' ? `${f.state === 'working' ? 'Writing' : 'Waiting to write'} ${f.rel}… — ${f.reason}`
+    : `${{ create: 'New file', delete: 'Delete', edit: 'Edit' }[f.action]} · ${f.reason}${f.note ? ` (${f.note})` : ''}`;
+  multiDiff ||= monaco.editor.createDiffEditor($('#multi-diff'), { automaticLayout: true, renderSideBySide: true, originalEditable: false,
+    minimap: { enabled: false }, scrollBeyondLastLine: false, renderOverviewRuler: false, ignoreTrimWhitespace: false, hideUnchangedRegions: { enabled: true }, padding: { top: 8 } });
+  multiDiff.updateOptions({ fontSize: S.fontSize, fontFamily: S.fontFamily, fontLigatures: S.fontLigatures, readOnly: f.state === 'delete' });
+  multiEmpty ||= [monaco.editor.createModel(''), monaco.editor.createModel('')];
+  multiDiff.setModel(f.original && f.modified ? { original: f.original, modified: f.modified } : { original: multiEmpty[0], modified: multiEmpty[1] });
+}
+
+async function runMultiEdit({ instruction, root = S.cwd, plan: preset } = {}) {
+  if (ME.open) { toast('A multi-file edit is already open', 'warn'); return; }
+  if (!instruction) instruction = await askInput('Edit multiple files — what should change?', '',
+    'e.g. "rename getUser to fetchUser everywhere", "add type hints to every module", "add a /health endpoint with a test"');
+  if (!instruction) return;
+  Object.assign(ME, { open: true, files: [], cur: -1, root, working: true, ctl: new AbortController() });
+  reviewOpen = true;
+  $('#multi-title').textContent = instruction;
+  $('#multi-files').replaceChildren();
+  $('#multi-why').textContent = '';
+  $('#multi').classList.add('open');
+  const signal = ME.ctl.signal;
+  renderMultiButtons();
+  try {
+    let plan = preset;
+    if (!plan) { setMultiStatus('Reading the project and planning which files to change…'); plan = await planMultiEdit(instruction, root, signal); }
+    if (!plan.length) { ME.working = false; setMultiStatus("ocode didn't find any files to change — try rewording the request"); renderMultiButtons(); return; }
+    ME.files = plan.map(p => ({ ...p, state: 'pending', include: true }));
+    renderMultiFiles();
+    selectMulti(0);
+    for (const [i, f] of ME.files.entries()) {
+      if (signal.aborted) break;
+      f.state = 'working';
+      updateMultiRow(f); f._row?.classList.replace('pending', 'working');
+      setMultiStatus(`Writing ${f.rel} (${i + 1} of ${ME.files.length})…`);
+      if (ME.cur === i) selectMulti(i);
+      try { await generateFileEdit(f, instruction, signal); }
+      catch (e) {
+        if (e.name === 'AbortError') { f.state = 'pending'; break; }
+        f.state = 'failed'; f.error = e.message;
+      }
+      renderMultiFiles();
+      if (ME.cur === i) selectMulti(i);
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') setMultiStatus('Planning failed: ' + e.message, false);
+  }
+  if (!ME.open) return;
+  ME.working = false;
+  const ok = ME.files.filter(f => REVIEWABLE.has(f.state) && f.state !== 'nochange').length, bad = ME.files.filter(f => f.state === 'failed').length;
+  if (ME.files.length) setMultiStatus(signal.aborted ? 'Stopped — review what was written so far' : `${ok} file${ok === 1 ? '' : 's'} ready to review${bad ? ` · ${bad} failed` : ''}`);
+  renderMultiFiles();
+}
+function closeMulti() {
+  if (!ME.open) return;
+  ME.ctl?.abort();
+  ME.open = false; ME.working = false; reviewOpen = false;
+  $('#multi').classList.remove('open');
+  multiDiff?.setModel(null);
+  for (const f of ME.files) { f.original?.dispose(); f.modified?.dispose(); }
+  ME.files = [];
+  if (editor.getModel()) editor.focus();
+}
+async function applyMulti() {
+  if (ME.working) return;
+  const chosen = ME.files.filter(f => f.include && REVIEWABLE.has(f.state) && f.state !== 'nochange');
+  if (!chosen.length) return;
+  const undo = [];
+  for (const f of chosen) {
+    try {
+      if (f.state === 'delete') {
+        await post('/api/fs', { op: 'trash', path: f.abs });
+        await closeTab(f.abs, true);
+        undo.push({ abs: f.abs, before: f.originalText });
+        continue;
+      }
+      const text = f.modified.getValue(), t = tabs.get(f.abs);
+      if (t?.kind === 'text') { t.model.pushEditOperations([], [{ range: t.model.getFullModelRange(), text }], () => null); await saveTab(t, false, 'ai'); }
+      else await post('/api/file', { path: f.abs, content: text, source: 'ai' });
+      undo.push({ abs: f.abs, before: f.existed ? f.originalText : null });
+    } catch (e) { toast(`${f.rel}: ${e.message}`, 'error', 6000); }
+  }
+  ME.last = undo;
+  closeMulti();
+  invalidateFileIndex(); refreshTreeSoon(); refreshGitSoon();
+  toast(`Changed ${undo.length} file${undo.length === 1 ? '' : 's'}`, 'ok', 8000, { label: 'Undo', run: undoMultiEdit });
+}
+async function undoMultiEdit() {
+  const list = ME.last;
+  if (!list?.length) { toast('Nothing to undo', 'warn'); return; }
+  for (const u of [...list].reverse()) {
+    try {
+      if (u.before === null) { await closeTab(u.abs, true); await post('/api/fs', { op: 'trash', path: u.abs }); continue; }
+      const t = tabs.get(u.abs);
+      if (t?.kind === 'text') { t.model.pushEditOperations([], [{ range: t.model.getFullModelRange(), text: u.before }], () => null); await saveTab(t, false, 'undo'); }
+      else await post('/api/file', { path: u.abs, content: u.before, source: 'undo' });
+    } catch (e) { toast(`${rel(u.abs)}: ${e.message}`, 'error'); }
+  }
+  ME.last = null;
+  invalidateFileIndex(); refreshTreeSoon(); refreshGitSoon();
+  toast(`Restored ${list.length} file${list.length === 1 ? '' : 's'}`, 'ok');
+}
+function fixOpenFiles() {
+  const plan = [];
+  for (const t of tabs.values()) {
+    if (t.kind !== 'text' || !t.path.startsWith(S.cwd + '/')) continue;
+    const mk = monaco.editor.getModelMarkers({ resource: t.model.uri }).filter(m => m.severity >= monaco.MarkerSeverity.Warning);
+    if (mk.length) plan.push({ rel: t.path.slice(S.cwd.length + 1), abs: t.path, action: 'edit', existed: true,
+      reason: 'Fix: ' + mk.slice(0, 8).map(m => `line ${m.startLineNumber}: ${m.message.split('\n')[0]}`).join('; ') });
+  }
+  if (!plan.length) { toast('No problems in your open files', 'ok'); return; }
+  return runMultiEdit({ instruction: `Fix the reported problems in ${plan.length} open file${plan.length > 1 ? 's' : ''}`, plan });
+}
+window.addEventListener('keydown', e => {
+  if (!ME.open) return;
+  const inEditor = e.target.closest?.('.monaco-editor');
+  if (e.key === 'Escape') closeMulti();
+  else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || !inEditor)) applyMulti();
+  else if (!inEditor && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && ME.files.length) selectMulti((ME.cur + (e.key === 'ArrowDown' ? 1 : -1) + ME.files.length) % ME.files.length);
+  else return;
+  e.preventDefault(); e.stopImmediatePropagation();
+}, true);
+
+// ── Diff tabs ─────────────────────────────────────────────────────────────────
+let tabDiff = null;
+function timeAgo(sec) {
+  const s = Date.now() / 1000 - sec;
+  for (const [n, w] of [[31536000, 'year'], [2592000, 'month'], [604800, 'week'], [86400, 'day'], [3600, 'hour'], [60, 'minute']])
+    if (s >= n) { const k = Math.floor(s / n); return `${k} ${w}${k > 1 ? 's' : ''} ago`; }
+  return 'just now';
+}
+const fmtBytes = b => (b < 1024 ? `${b} B` : b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(1)} MB`);
+function showDiffTab(t) {
+  tabDiff ||= monaco.editor.createDiffEditor($('#dv-editor'), { automaticLayout: true, originalEditable: false, scrollBeyondLastLine: false,
+    ignoreTrimWhitespace: false, padding: { top: 8 }, minimap: { enabled: false } });
+  tabDiff.updateOptions({ fontSize: S.fontSize, fontFamily: S.fontFamily, fontLigatures: S.fontLigatures, readOnly: !t.editable, renderSideBySide: !S.diffInline });
+  tabDiff.setModel({ original: t.original, modified: t.modified });
+  $('#dv-title').innerHTML = t.titleHtml || esc(t.name);
+  $('#dv-actions').replaceChildren(...(t.actions || []).map(a => h('button', { class: 'btn' + (a.primary ? ' primary' : ''), onclick: a.run }, a.label)),
+    h('button', { class: 'btn', title: 'Switch between side-by-side and inline', onclick: () => { setSettings({ diffInline: !S.diffInline }); tabDiff.updateOptions({ renderSideBySide: !S.diffInline }); } }, S.diffInline ? 'Side by side' : 'Inline'));
+}
+function openDiffTab({ key, path, title, titleHtml, original, modified, editable = false, actions = [], owned = [] }) {
+  const old = tabs.get(key);
+  if (old) {
+    if (active === key) tabDiff?.setModel(null);
+    for (const m of old.owned || []) if (m !== original && m !== modified) m.dispose();
+    Object.assign(old, { name: title, titleHtml, original, modified, editable, actions, owned });
+  } else tabs.set(key, { key, path, kind: 'diff', name: title, iconName: basename(path), titleHtml, original, modified, editable, actions, owned });
+  activate(key);
+}
+const gitShow = (path, ref, relp) => api(`/api/git/show?path=${enc(path)}&ref=${enc(ref)}${relp ? '&rel=' + enc(relp) : ''}`);
+async function workingModel(path) {
+  const t = tabs.get(path);
+  if (t?.kind === 'text') return { model: t.model, editable: true, owned: [] };
+  let content = '';
+  try { content = (await api('/api/file?path=' + enc(path))).content ?? ''; } catch {}
+  const model = monaco.editor.createModel(content, langForPath(path));
+  return { model, editable: false, owned: [model] };
+}
+
+// ── Source control ────────────────────────────────────────────────────────────
+const SCM = { status: null, msg: '', busy: false, collapsed: {}, els: null };
+async function refreshScm() {
+  try { SCM.status = await api('/api/git/status?path=' + enc(S.cwd)); } catch { SCM.status = { repo: false }; }
+  const n = SCM.status.repo ? SCM.status.files.length : 0;
+  $('#scm-badge').textContent = n ? (n > 99 ? '99+' : n) : '';
+  if (currentView === 'scm') renderScm();
+  renderStatus();
+}
+async function gitCmd(args, opts = {}) {
+  const r = await post('/api/git/cmd', { cwd: SCM.status?.root || S.cwd, args, input: opts.input });
+  if (r.code !== 0 && !opts.quiet) throw new Error((r.stderr || r.stdout || `git ${args[0]} failed`).trim().split('\n').slice(-3).join('\n'));
+  return r;
+}
+async function afterWorkingTreeChange() {
+  for (const p of [...tabs.keys()]) await reloadIfOpen(p);
+  invalidateFileIndex(); refreshTreeSoon();
+}
+async function scmRun(label, fn) {
+  if (SCM.busy) return;
+  SCM.busy = true;
+  $$('#scm-body .scm-sync, [data-act="scmRefresh"]').forEach(b => b.classList.add('busy'));
+  try { await fn(); } catch (e) { toast(`${label}: ${e.message}`, 'error', 9000); }
+  finally { SCM.busy = false; $$('#scm-body .busy, [data-act="scmRefresh"].busy').forEach(b => b.classList.remove('busy')); await refreshGit(); }
+}
+const stagedFiles = () => (SCM.status?.files || []).filter(f => !f.untracked && !f.conflict && f.x !== '.');
+const changedFiles = () => (SCM.status?.files || []).filter(f => !f.conflict && (f.untracked || f.y !== '.'));
+const conflictFiles = () => (SCM.status?.files || []).filter(f => f.conflict);
+const STATUS_WORD = { M: 'Modified', A: 'Added', D: 'Deleted', R: 'Renamed', C: 'Conflict', U: 'Untracked', T: 'Type changed' };
+const miniBtn = (ic, title, run) => h('button', { class: 'mini', title, html: icon(ic), onclick: e => { e.stopPropagation(); run(e); } });
+
+function renderScm() {
+  const body = $('#scm-body'), st = SCM.status;
+  if (!st) { body.replaceChildren(h('div', { class: 'scm-empty' }, 'Loading…')); SCM.els = null; return; }
+  if (!st.repo) {
+    SCM.els = null;
+    body.replaceChildren(h('div', { class: 'scm-empty' }, `“${basename(S.cwd)}” isn't a Git repository yet. Initialize one to track changes, commit, and push to GitHub.`,
+      h('div', {}, h('button', { class: 'btn primary', onclick: () => scmRun('Initialize', async () => { await gitCmd(['init']); toast('Initialized a Git repository', 'ok'); }) }, 'Initialize Repository'))));
+    return;
+  }
+  if (!SCM.els) {
+    const ta = h('textarea', { spellcheck: 'true' });
+    ta.value = SCM.msg;
+    ta.addEventListener('input', () => { SCM.msg = ta.value; });
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); scmCommit(); } });
+    const gen = h('button', { class: 'mini gen', title: 'Write the commit message with ocode', html: icon('sparkle'), onclick: () => scmGenerateMessage(gen) });
+    const commit = h('div', { class: 'scm-commit' }, h('div', { class: 'scm-msg' }, ta, gen),
+      h('div', { class: 'scm-btns' }, h('button', { class: 'btn primary', html: `${icon('check')}<span>Commit</span>`, onclick: () => scmCommit() }),
+        h('button', { class: 'btn', title: 'More commit options', html: icon('chev', 'caret'), onclick: e => commitMenu(e.currentTarget) })));
+    SCM.els = { branch: h('div'), commit, ta, groups: h('div') };
+    body.replaceChildren(SCM.els.branch, commit, SCM.els.groups);
+  }
+  const { branch, ta, groups } = SCM.els;
+  ta.placeholder = `Message (Ctrl+Enter to commit on “${st.branch || 'HEAD'}”)`;
+  if (document.activeElement !== ta && ta.value !== SCM.msg) ta.value = SCM.msg;
+  branch.replaceWith(SCM.els.branch = h('div', { class: 'scm-branch' },
+    h('div', { class: 'bname', title: 'Switch branch', onclick: e => pickBranch(e.currentTarget), html: `${icon('gitBranch')}<span>${esc(st.branch || '(detached)')}</span>` }),
+    h('div', { class: 'scm-sync', title: st.upstream ? `Sync with ${st.upstream}: pull ${st.behind}, push ${st.ahead}` : 'Publish this branch to the remote',
+      onclick: () => scmSync(), html: st.upstream ? `${icon('arrowDown')}${st.behind} ${icon('arrowUp')}${st.ahead}` : `${icon('arrowUp')}Publish` })));
+  const conflicts = conflictFiles(), staged = stagedFiles(), changes = changedFiles();
+  const sections = [];
+  if (conflicts.length) sections.push(scmSection('conflicts', 'Merge Conflicts', conflicts, false, [miniBtn('plus', 'Mark all resolved (stage)', () => scmStage(conflicts))]));
+  if (staged.length) sections.push(scmSection('staged', 'Staged Changes', staged, true, [miniBtn('minus', 'Unstage all', () => scmUnstage(staged))]));
+  sections.push(scmSection('changes', 'Changes', changes, false, changes.length ? [
+    miniBtn('undo', 'Discard all changes', () => scmDiscard(changes)), miniBtn('plus', 'Stage all changes', () => scmStage(changes))] : []));
+  if (!st.files.length) sections.push(h('div', { class: 'scm-empty' }, 'No changes — your working tree is clean.'));
+  groups.replaceChildren(...sections);
+}
+function scmSection(id, title, files, staged, acts) {
+  const sec = h('div', { class: 'scm-sec' + (SCM.collapsed[id] ? ' closed' : '') });
+  sec.append(h('div', { class: 'scm-group', onclick: () => { SCM.collapsed[id] = !SCM.collapsed[id]; sec.classList.toggle('closed'); } },
+    h('span', { class: 'chev open', html: icon('chev') }), h('span', {}, title), h('span', { class: 'cnt' }, files.length), h('span', { class: 'acts' }, ...acts)),
+  ...files.map(f => scmFileRow(f, staged)));
+  return sec;
+}
+function scmFileRow(f, staged) {
+  const letter = f.conflict ? 'C' : f.untracked ? 'U' : (staged ? f.x : f.y);
+  const acts = staged ? [miniBtn('minus', 'Unstage', () => scmUnstage([f]))]
+    : [miniBtn('undo', 'Discard changes', () => scmDiscard([f])), miniBtn('plus', 'Stage', () => scmStage([f]))];
+  if (letter !== 'D') acts.unshift(miniBtn('file', 'Open file', () => openFile(f.path)));
+  const row = h('div', { class: 'scm-file', title: `${f.rel} — ${STATUS_WORD[letter] || letter}${staged ? ' (staged)' : ''}`, onclick: () => openGitDiff(f, staged) },
+    h('span', { html: fileIcon(basename(f.rel)) }), h('span', { class: 'name' }, basename(f.rel)), h('span', { class: 'sdir' }, f.rel.includes('/') ? dirname(f.rel) : ''),
+    h('span', { class: 'acts' }, ...acts), h('span', { class: 'st st-' + letter }, letter));
+  row.oncontextmenu = e => {
+    e.preventDefault();
+    showMenu(e.clientX, e.clientY, [
+      { label: 'Open Changes', run: () => openGitDiff(f, staged) },
+      ...(letter !== 'D' ? [{ label: 'Open File', run: () => openFile(f.path) }] : []),
+      '-',
+      staged ? { label: 'Unstage', run: () => scmUnstage([f]) } : { label: 'Stage', run: () => scmStage([f]) },
+      ...(!staged ? [{ label: 'Discard Changes', danger: true, run: () => scmDiscard([f]) }] : []),
+      '-',
+      { label: 'Git History…', run: () => showFileHistory(f.path) },
+      { label: 'Copy Path', run: () => copyText(f.path) },
+    ]);
+  };
+  return row;
+}
+async function openGitDiff(f, staged) {
+  const lang = langForPath(f.path), name = basename(f.path);
+  try {
+    if (staged) {
+      const [head, idx] = await Promise.all([gitShow(f.path, 'HEAD'), gitShow(f.path, '')]);
+      const o = monaco.editor.createModel(head.content || '', lang), m = monaco.editor.createModel(idx.content || '', lang);
+      openDiffTab({ key: `diff:staged:${f.path}`, path: f.path, title: `${name} (staged)`, titleHtml: `<b>${esc(name)}</b> · HEAD ↔ Staged`, original: o, modified: m, owned: [o, m],
+        actions: [{ label: 'Unstage', run: () => scmUnstage([f]) }, { label: 'Open File', run: () => openFile(f.path) }] });
+      return;
+    }
+    const idx = f.untracked ? { content: '' } : await gitShow(f.path, '');
+    const o = monaco.editor.createModel(idx.content || '', lang);
+    let m, editable = false, owned = [o];
+    if (f.y === 'D') { m = monaco.editor.createModel('', lang); owned.push(m); }
+    else { const w = await workingModel(f.path); m = w.model; editable = w.editable; owned.push(...w.owned); }
+    const actions = [{ label: 'Stage', primary: true, run: () => scmStage([f]) }, { label: 'Discard', run: () => scmDiscard([f]) }];
+    if (f.y !== 'D') actions.push({ label: 'Open File', run: () => openFile(f.path) });
+    openDiffTab({ key: `diff:work:${f.path}`, path: f.path, title: `${name} (changes)`, titleHtml: `<b>${esc(name)}</b> · ${f.untracked ? 'New file' : 'Staged ↔ Working Tree'}`,
+      original: o, modified: m, editable, owned, actions });
+  } catch (e) { toast(`Couldn't open changes: ${e.message}`, 'error'); }
+}
+async function openFileChanges(path = tabs.get(active)?.path) {
+  if (!path) return;
+  await refreshScm();
+  const f = (SCM.status?.files || []).find(x => x.path === path);
+  if (!f) { toast(SCM.status?.repo ? `${basename(path)} has no changes` : 'This folder is not a Git repository', 'warn'); return; }
+  openGitDiff(f, f.y === '.' && f.x !== '.' && !f.untracked);
+}
+const scmStage = files => scmRun('Stage', () => gitCmd(['add', '--', ...files.map(f => f.path)]));
+const scmUnstage = files => scmRun('Unstage', () => SCM.status?.hasCommits
+  ? gitCmd(['restore', '--staged', '--', ...files.map(f => f.path)])
+  : gitCmd(['rm', '--cached', '-q', '--', ...files.map(f => f.path)]));
+async function scmDiscard(files) {
+  if (!files.length) return;
+  const untracked = files.filter(f => f.untracked), tracked = files.filter(f => !f.untracked);
+  const what = files.length === 1 ? `“${basename(files[0].rel)}”` : `${files.length} files`;
+  if (!await askConfirm(`Discard changes in ${what}? ${untracked.length ? 'New files go to the trash. ' : ''}Copies are kept in Local History.`, 'Discard Changes')) return;
+  await scmRun('Discard', async () => {
+    await post('/api/history/snap', { paths: tracked.map(f => f.path), label: 'discard' });
+    if (tracked.length) await gitCmd(['restore', '--', ...tracked.map(f => f.path)]);
+    for (const f of untracked) { await closeTab(f.path, true); await post('/api/fs', { op: 'trash', path: f.path }); }
+    await afterWorkingTreeChange();
+  });
+}
+async function askGitIdentity() {
+  const name = await askInput('Git needs a name for your commits', S.gitName || '', 'Shown as the author of your commits');
+  if (!name) return false;
+  const email = await askInput('…and an email', S.gitEmail || '', 'A GitHub “noreply” address keeps your real email private');
+  if (!email) return false;
+  S.gitName = name; S.gitEmail = email;
+  await post('/api/settings', { gitName: name, gitEmail: email });
+  return true;
+}
+async function scmCommit({ amend = false, push = false, all = false } = {}) {
+  const st = SCM.status;
+  if (!st?.repo) { toast('This folder is not a Git repository', 'warn'); return; }
+  const msg = SCM.msg.trim();
+  if (!msg && !amend) { toast('Write a commit message first — or click ✦ to have ocode write one', 'warn'); showView('scm', true); SCM.els?.ta.focus(); return; }
+  if (!all && !amend && !stagedFiles().length) {
+    if (!st.files.length) { toast('Nothing to commit', 'warn'); return; }
+    if (!await askConfirm('Nothing is staged. Stage all changes and commit them?', 'Stage All & Commit')) return;
+    all = true;
+  }
+  await scmRun('Commit', async () => {
+    if (all) await gitCmd(['add', '-A']);
+    const args = ['commit', '-q', ...(amend ? ['--amend'] : []), ...(msg ? ['-m', msg] : ['--no-edit'])];
+    let r = await gitCmd(args, { quiet: true });
+    if (r.code !== 0 && /tell me who you are|empty ident|user\.email|user\.name/i.test(r.stderr)) {
+      if (!await askGitIdentity()) return;
+      r = await gitCmd(args, { quiet: true });
+    }
+    if (r.code !== 0) throw new Error((r.stderr || r.stdout).trim());
+    SCM.msg = '';
+    if (SCM.els) SCM.els.ta.value = '';
+    toast(amend ? 'Amended the last commit' : 'Committed', 'ok');
+    if (push) await pushCore();
+  });
+}
+function commitMenu(anchor) {
+  askPick('Commit', [
+    { label: 'Commit', desc: 'Commit staged changes', value: 'commit', icon: icon('check') },
+    { label: 'Commit & Push', value: 'push', icon: icon('arrowUp') },
+    { label: 'Commit All', desc: 'Stage every change, then commit', value: 'all', icon: icon('plus') },
+    { label: 'Amend Last Commit', desc: 'Add staged changes to the previous commit', value: 'amend', icon: icon('edit') },
+  ], { anchor, width: 280 }).then(v => v && scmCommit({ push: v === 'push', all: v === 'all', amend: v === 'amend' }));
+}
+async function pushCore() {
+  const st = SCM.status;
+  await gitCmd(st?.upstream ? ['push'] : ['push', '-u', 'origin', 'HEAD']);
+  toast(st?.upstream ? 'Pushed' : `Published ${st?.branch || 'branch'}`, 'ok');
+}
+async function pullCore() { await gitCmd(['pull', '--rebase', '--autostash']); await afterWorkingTreeChange(); }
+const scmPush = () => scmRun('Push', pushCore);
+const scmPull = () => scmRun('Pull', async () => { await pullCore(); toast('Pulled', 'ok'); });
+const scmFetch = () => scmRun('Fetch', async () => { await gitCmd(['fetch', '--prune']); toast('Fetched', 'ok'); });
+const scmSync = () => scmRun('Sync', async () => {
+  if (!SCM.status?.upstream) { await pushCore(); return; }
+  await pullCore(); await pushCore();
+});
+async function scmGenerateMessage(btn) {
+  btn?.classList.add('busy');
+  try {
+    let diff = (await gitCmd(['diff', '--staged', '--no-color'], { quiet: true })).stdout;
+    if (!diff.trim()) diff = (await gitCmd(['diff', '--no-color'], { quiet: true })).stdout;
+    const added = changedFiles().filter(f => f.untracked).map(f => f.rel);
+    if (!diff.trim() && !added.length) { toast('There are no changes to describe', 'warn'); return; }
+    const clean = t => t.replace(/^```\w*\n?|```\s*$/gm, '').replace(/^["'`]+|["'`]+$/g, '').trim();
+    const prompt = 'Write a git commit message for these changes. First line: an imperative summary under 65 characters. ' +
+      'If it helps, add a blank line and up to 4 short bullet points. Reply with the message only.\n\n' +
+      (added.length ? `New files: ${added.join(', ')}\n\n` : '') + '```diff\n' + diff.slice(0, 14000) + '\n```';
+    const text = await streamText('/api/ai', { prompt, system: 'You write concise, specific git commit messages.', temperature: 0.2, think: false, maxTokens: 300 },
+      null, t => { if (SCM.els) SCM.els.ta.value = clean(t); });
+    SCM.msg = clean(text);
+    if (SCM.els) { SCM.els.ta.value = SCM.msg; SCM.els.ta.focus(); }
+  } catch (e) { toast(`Couldn't write a message: ${e.message}`, 'error'); }
+  finally { btn?.classList.remove('busy'); }
+}
+async function pickBranch(anchor) {
+  anchor = anchor || clickAnchor();
+  const b = await api('/api/git/branches?path=' + enc(S.cwd));
+  if (!b.local.length && !SCM.status?.repo) { toast('This folder is not a Git repository', 'warn'); return; }
+  const tracked = new Set(b.local.map(x => x.upstream));
+  const remotes = b.remote.filter(r => !tracked.has(r));
+  const v = await askPick('Switch branch', [
+    { label: 'Create new branch…', value: { create: true }, icon: icon('plus') },
+    { head: 'Branches' },
+    ...b.local.map(x => ({ label: x.name, desc: [x.upstream && `tracks ${x.upstream}`, x.time && timeAgo(x.time)].filter(Boolean).join(' · '), value: { name: x.name }, checked: x.current, icon: icon('gitBranch') })),
+    ...(remotes.length ? [{ head: 'Remote branches' }, ...remotes.map(r => ({ label: r, value: { remote: r }, icon: icon('gitBranch') }))] : []),
+  ], { anchor, width: 320 });
+  if (!v) return;
+  await scmRun('Switch branch', async () => {
+    if (v.create) {
+      const name = await askInput('New branch name', '', 'Created from the current commit');
+      if (!name) return;
+      await gitCmd(['switch', '-c', name.trim().replace(/\s+/g, '-')]);
+    } else if (v.remote) await gitCmd(['switch', '--track', v.remote]);
+    else await gitCmd(['switch', v.name]);
+    await afterWorkingTreeChange();
+  });
+}
+async function scmMoreMenu(e) {
+  const st = SCM.status || {};
+  const v = await askPick('Source control', [
+    { label: 'Pull', value: 'pull', icon: icon('arrowDown') }, { label: 'Push', value: 'push', icon: icon('arrowUp') },
+    { label: 'Sync', desc: 'Pull, then push', value: 'sync', icon: icon('sync') }, { label: 'Fetch', value: 'fetch', icon: icon('refresh') },
+    { sep: true },
+    { label: 'Switch branch…', value: 'branch', icon: icon('gitBranch') },
+    { label: 'Stash all changes', value: 'stash', icon: icon('insert'), disabled: !st.files?.length },
+    { label: `Pop latest stash${st.stashes ? ` (${st.stashes})` : ''}`, value: 'pop', icon: icon('up'), disabled: !st.stashes },
+    { label: 'Undo last commit', desc: 'Keeps its changes staged', value: 'undo', icon: icon('undo'), disabled: !st.hasCommits },
+    { sep: true },
+    { label: 'Show history', value: 'log', icon: icon('clock') },
+  ], { anchor: e?.currentTarget, width: 260 });
+  const run = {
+    pull: scmPull, push: scmPush, sync: scmSync, fetch: scmFetch, branch: () => pickBranch(),
+    stash: () => scmRun('Stash', async () => { await gitCmd(['stash', 'push', '-u', '-m', 'ocode stash']); await afterWorkingTreeChange(); toast('Stashed your changes', 'ok'); }),
+    pop: () => scmRun('Pop stash', async () => { await gitCmd(['stash', 'pop']); await afterWorkingTreeChange(); toast('Restored stashed changes', 'ok'); }),
+    undo: async () => {
+      const [last] = await api(`/api/git/log?path=${enc(S.cwd)}&n=1`);
+      if (!last || !await askConfirm(`Undo “${last.summary}”? Its changes stay staged so you can recommit.`, 'Undo Commit')) return;
+      await scmRun('Undo commit', async () => { await gitCmd(['reset', '--soft', 'HEAD~1']); SCM.msg = last.summary; if (SCM.els) SCM.els.ta.value = SCM.msg; });
+    },
+    log: () => showRepoHistory(),
+  }[v];
+  run?.();
+}
+async function showRepoHistory() {
+  const commits = await api(`/api/git/log?path=${enc(S.cwd)}&n=150`);
+  if (!commits.length) { toast('No commits yet', 'warn'); return; }
+  const r = await quick({ title: 'Git History', placeholder: 'Search commits', getItems: q => fuzzyItems(commits.map(c => ({ label: c.summary, detail: `${c.short} · ${c.author} · ${timeAgo(c.time)}`, icon: icon('gitBranch'), sha: c.sha })), q.trim()) });
+  if (r?.item?.sha) runInTerminal(`git --no-pager show --stat ${r.item.sha}`);
+}
+
+// ── Git gutter markers and inline blame ───────────────────────────────────────
+const GUT = { coll: null, token: 0 }, BLAME = { coll: null, style: null, token: 0, info: null };
+const inRepo = t => t?.kind === 'text' && git.root && t.path.startsWith(git.root + '/');
+const updateGutter = debounce(async () => {
+  if (!editor) return;
+  const t = tabs.get(active);
+  GUT.coll ||= editor.createDecorationsCollection();
+  if (S.gitGutter === false || !inRepo(t)) { GUT.coll.clear(); return; }
+  const tok = ++GUT.token, model = t.model;
+  let r;
+  try { r = await post('/api/git/linediff', { path: t.path, content: model.getValue() }); } catch { return; }
+  if (tok !== GUT.token || editor.getModel() !== model) return;
+  GUT.coll.set((r.changes || []).map(c => ({ range: new monaco.Range(c.start, 1, Math.max(c.start, c.end), 1),
+    options: { isWholeLine: true, linesDecorationsClassName: 'gd-' + c.type, overviewRuler: { color: { add: '#8fbf7a', mod: '#7aa6e0', del: '#e5707a' }[c.type], position: monaco.editor.OverviewRulerLane.Left } } })));
+}, 400);
+const updateBlame = debounce(async () => {
+  if (!editor) return;
+  const t = tabs.get(active);
+  BLAME.coll ||= editor.createDecorationsCollection();
+  BLAME.style ||= document.head.appendChild(h('style'));
+  const clear = () => { BLAME.coll.clear(); BLAME.style.textContent = ''; BLAME.info = null; };
+  const pos = editor.getPosition(), sel = editor.getSelection();
+  if (S.gitBlame === false || !inRepo(t) || !pos || (sel && sel.startLineNumber !== sel.endLineNumber)) return clear();
+  const line = pos.lineNumber, model = t.model, tok = ++BLAME.token;
+  let b;
+  try { b = await post('/api/git/blame', { path: t.path, line, content: model.getValue() }); } catch { return clear(); }
+  if (tok !== BLAME.token || editor.getModel() !== model || editor.getPosition()?.lineNumber !== line) return;
+  if (!b.sha) return clear();
+  const text = b.uncommitted ? 'You · not committed yet' : `${b.me ? 'You' : b.author}, ${timeAgo(b.time)} · ${b.summary.slice(0, 90)}`;
+  BLAME.style.textContent = `.gb-msg-1::after{content:${JSON.stringify(text)}}`;
+  const end = model.getLineMaxColumn(line);
+  BLAME.coll.set([{ range: new monaco.Range(line, end, line, end), options: { afterContentClassName: 'gb-msg-1', showIfCollapsed: true } }]);
+  BLAME.info = { ...b, line, path: t.path };
+}, 350);
+
+// ── Local history and git file history ────────────────────────────────────────
+const HISTORY_LABELS = { save: 'Saved', ai: 'Before an AI edit', agent: 'Before a chat agent edit', restore: 'Before a restore', undo: 'Before an undo', discard: 'Before a Git discard' };
+async function showLocalHistory(path = tabs.get(active)?.path, anchor) {
+  if (!path) { toast('Open a file first', 'warn'); return; }
+  anchor = anchor || clickAnchor();
+  const list = await api('/api/history?path=' + enc(path));
+  if (!list.length) { toast(`No saved versions of ${basename(path)} yet — ocode keeps them as you edit`, 'warn', 5000); return; }
+  const v = await askPick(`Local history · ${basename(path)}`, list.map(s => ({ label: timeAgo(s.time), value: s, icon: icon('clock'),
+    desc: `${HISTORY_LABELS[s.label] || s.label} · ${new Date(s.time * 1000).toLocaleString()} · ${fmtBytes(s.size)}` })), { anchor, width: 380 });
+  if (!v) return;
+  const snap = await api(`/api/history/get?path=${enc(path)}&id=${enc(v.id)}`);
+  const o = monaco.editor.createModel(snap.content, langForPath(path)), w = await workingModel(path), key = `hist:${path}:${v.id}`;
+  openDiffTab({ key, path, title: `${basename(path)} (${timeAgo(v.time)})`, original: o, modified: w.model, editable: w.editable, owned: [o, ...w.owned],
+    titleHtml: `<b>${esc(basename(path))}</b> · ${esc(new Date(v.time * 1000).toLocaleString())} ↔ Current`,
+    actions: [{ label: 'Restore this version', primary: true, run: () => restoreVersion(path, snap.content, key) }] });
+}
+async function restoreVersion(path, content, diffKey) {
+  if (!await askConfirm(`Replace ${basename(path)} with this version? The current version stays in Local History.`, 'Restore')) return;
+  const t = tabs.get(path);
+  if (t?.kind === 'text') { t.model.pushEditOperations([], [{ range: t.model.getFullModelRange(), text: content }], () => null); await saveTab(t, false, 'restore'); }
+  else await post('/api/file', { path, content, source: 'restore' });
+  if (diffKey) await closeTab(diffKey, true);
+  await openFile(path);
+  toast(`Restored ${basename(path)}`, 'ok');
+  refreshGitSoon();
+}
+async function showFileHistory(path = tabs.get(active)?.path, anchor) {
+  if (!path) { toast('Open a file first', 'warn'); return; }
+  anchor = anchor || clickAnchor();
+  const commits = await api(`/api/git/log?path=${enc(path)}&n=100`);
+  if (!commits.length) { toast(`${basename(path)} has no Git history`, 'warn'); return; }
+  const v = await askPick(`Git history · ${basename(path)}`, commits.map(c => ({ label: c.summary || '(no message)', value: c, icon: icon('gitBranch'),
+    desc: `${c.short} · ${c.author} · ${timeAgo(c.time)}` })), { anchor, width: 440 });
+  if (!v) return;
+  const [before, after] = await Promise.all([gitShow(path, v.sha + '^', v.rel), gitShow(path, v.sha, v.rel)]);
+  const lang = langForPath(path), o = monaco.editor.createModel(before.content || '', lang), m = monaco.editor.createModel(after.content || '', lang);
+  openDiffTab({ key: `commit:${v.sha}:${path}`, path, title: `${basename(path)} @ ${v.short}`, original: o, modified: m, owned: [o, m],
+    titleHtml: `<b>${esc(basename(path))}</b> · ${esc(v.short)} ${esc(v.summary)} — ${esc(v.author)}, ${timeAgo(v.time)}`,
+    actions: [{ label: 'Restore this version', run: () => restoreVersion(path, after.content || '') }] });
+}
+
+// ── Symbols, Outline and Go to Symbol ─────────────────────────────────────────
+const KIND_LABEL = { class: 'C', function: 'ƒ', method: 'm', type: 'T', module: 'M', heading: '#', key: 'k', variable: 'v' };
+const CLIKE_METHOD = /^(\s+)(?:(?:public|private|protected|internal|static|final|abstract|override|async|virtual|readonly|get|set|suspend)\s+)*(?!if\b|for\b|while\b|switch\b|catch\b|return\b|function\b|new\b|else\b)([\w$]+)\s*\([^)]*\)\s*(?::\s*[^{=]+)?\{\s*$/;
+const SYMBOL_RULES = {
+  python: [[/^(\s*)(?:async\s+)?def\s+([A-Za-z_]\w*)/, 'function'], [/^(\s*)class\s+([A-Za-z_]\w*)/, 'class']],
+  javascript: [[/^(\s*)(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s*\*?\s*([\w$]+)/, 'function'],
+    [/^(\s*)(?:export\s+)?(?:default\s+)?(?:abstract\s+)?class\s+([\w$]+)/, 'class'],
+    [/^(\s*)(?:export\s+)?(?:const|let|var)\s+([\w$]+)\s*(?::[^=]+)?=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*(?::[^=]+)?=>|[\w$]+\s*=>)/, 'function'],
+    [/^(\s*)(?:export\s+)?(?:declare\s+)?(?:interface|type)\s+([\w$]+)/, 'type'], [/^(\s*)(?:export\s+)?(?:const\s+)?enum\s+([\w$]+)/, 'type'], [CLIKE_METHOD, 'method']],
+  c: [[/^(\s*)(?:typedef\s+)?(?:struct|class|union|enum(?:\s+class)?|namespace)\s+([A-Za-z_]\w*)\s*(?:[:{]|$)/, 'class'],
+    [/^()(?!if\b|for\b|while\b|switch\b|return\b|else\b|typedef\b)[A-Za-z_][\w:<>,*&\s]*?[\s*&]([A-Za-z_~][\w:~]*)\s*\([^;]*$/, 'function'], [CLIKE_METHOD, 'method']],
+  go: [[/^()func\s+(?:\([^)]*\)\s*)?([A-Za-z_]\w*)/, 'function'], [/^()type\s+([A-Za-z_]\w*)/, 'type']],
+  rust: [[/^(\s*)(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?(?:async\s+)?(?:unsafe\s+)?fn\s+([A-Za-z_]\w*)/, 'function'],
+    [/^(\s*)(?:pub(?:\([^)]*\))?\s+)?(?:struct|enum|trait|union|type)\s+([A-Za-z_]\w*)/, 'type'],
+    [/^(\s*)impl(?:<[^>]*>)?\s+(?:[\w:<>, ]+\s+for\s+)?([\w:]+)/, 'class'], [/^(\s*)(?:pub\s+)?mod\s+([A-Za-z_]\w*)/, 'module']],
+  shell: [[/^(\s*)function\s+([A-Za-z_][\w-]*)/, 'function'], [/^(\s*)([A-Za-z_][\w-]*)\s*\(\)\s*\{?/, 'function']],
+  lua: [[/^(\s*)(?:local\s+)?function\s+([\w.:]+)/, 'function']],
+  java: [[/^(\s*)(?:(?:public|private|protected|internal|static|abstract|final|sealed|partial|data|open|enum)\s+)*(?:class|interface|enum|record|object|struct)\s+([A-Za-z_]\w*)/, 'class'],
+    [/^(\s*)(?:(?:private|public|internal|override|suspend|inline)\s+)*fun\s+(?:<[^>]*>\s*)?(?:[\w.]+\.)?([A-Za-z_]\w*)/, 'function'],
+    [/^(\s+)(?:(?:public|private|protected|internal|static|final|abstract|override|async|virtual|synchronized)\s+)+[\w<>\[\],.?\s]*?\b([A-Za-z_]\w*)\s*\(/, 'method']],
+  ruby: [[/^(\s*)def\s+(?:self\.)?([\w?!=]+)/, 'function'], [/^(\s*)(?:class|module)\s+([\w:]+)/, 'class']],
+  php: [[/^(\s*)(?:(?:public|private|protected|static|abstract|final)\s+)*function\s+([A-Za-z_]\w*)/, 'function'], [/^(\s*)(?:abstract\s+|final\s+)?(?:class|interface|trait|enum)\s+([A-Za-z_]\w*)/, 'class']],
+  yaml: [[/^()([A-Za-z_][\w.-]*)\s*:/, 'key']],
+  ini: [[/^()\[+\s*([^\]]+?)\s*\]+/, 'module']],
+  css: [[/^(\s*)([^\s@{}/][^{;]*?)\s*\{/, 'class']],
+};
+const SYMBOL_ALIAS = { typescript: 'javascript', cpp: 'c', csharp: 'java', kotlin: 'java', scss: 'css', less: 'css', toml: 'ini' };
+function extractSymbols(model) {
+  const lang = model.getLanguageId(), lines = model.getLinesContent(), flat = [];
+  if (lang === 'markdown') {
+    let fence = false;
+    lines.forEach((text, i) => {
+      if (/^\s*(```|~~~)/.test(text)) fence = !fence;
+      const m = !fence && /^(#{1,6})\s+(.+?)\s*#*$/.exec(text);
+      if (m) flat.push({ name: m[2], kind: 'heading', line: i + 1, col: m[1].length + 2, indent: m[1].length });
+    });
+  } else {
+    const rules = SYMBOL_RULES[SYMBOL_ALIAS[lang] || lang];
+    if (!rules) return [];
+    lines.forEach((text, i) => {
+      if (text.length > 400) return;
+      for (const [re, kind] of rules) {
+        const m = re.exec(text);
+        if (m && m[2]) { flat.push({ name: m[2].trim(), kind, line: i + 1, indent: m[1].replace(/\t/g, '    ').length, col: Math.max(1, text.indexOf(m[2]) + 1) }); break; }
+      }
+    });
+  }
+  flat.forEach((s, i) => {
+    let end = lines.length;
+    for (let j = i + 1; j < flat.length; j++) if (flat[j].indent <= s.indent) { end = flat[j].line - 1; break; }
+    s.endLine = Math.max(s.line, end);
+  });
+  const roots = [], stack = [];
+  for (const s of flat) {
+    while (stack.length && stack[stack.length - 1].indent >= s.indent) stack.pop();
+    const parent = stack[stack.length - 1];
+    if (parent) { (parent.children ||= []).push(s); if (s.kind === 'function' && parent.kind === 'class') s.kind = 'method'; }
+    else roots.push(s);
+    stack.push(s);
+  }
+  return roots;
+}
+const flattenSymbols = (list, out = []) => { for (const s of list) { out.push(s); if (s.children) flattenSymbols(s.children, out); } return out; };
+function symbolChain(line) {
+  const chain = [];
+  let list = OUT.symbols;
+  for (;;) {
+    const s = (list || []).find(x => line >= x.line && line <= x.endLine);
+    if (!s) return chain;
+    chain.push(s); list = s.children;
+  }
+}
+function registerSymbolProviders() {
+  const K = monaco.languages.SymbolKind;
+  const KIND = { class: K.Class, function: K.Function, method: K.Method, type: K.Interface, module: K.Module, heading: K.String, key: K.Key, variable: K.Variable };
+  const toDoc = (s, model) => ({ name: s.name, detail: '', kind: KIND[s.kind] ?? K.Function, tags: [],
+    range: new monaco.Range(s.line, 1, s.endLine, model.getLineMaxColumn(s.endLine)),
+    selectionRange: new monaco.Range(s.line, s.col, s.line, s.col + s.name.length), children: (s.children || []).map(c => toDoc(c, model)) });
+  // JavaScript/TypeScript/CSS already get symbols from Monaco's language workers.
+  for (const lang of ['python', 'c', 'cpp', 'go', 'rust', 'shell', 'lua', 'java', 'kotlin', 'csharp', 'ruby', 'php', 'yaml', 'ini', 'markdown'])
+    monaco.languages.registerDocumentSymbolProvider(lang, { displayName: 'ocode', provideDocumentSymbols: model => extractSymbols(model).map(s => toDoc(s, model)) });
+}
+const OUT = { model: null, symbols: [], flat: [] };
+const refreshOutline = debounce(() => {
+  const t = tabs.get(active);
+  OUT.model = t?.kind === 'text' ? t.model : null;
+  OUT.symbols = OUT.model ? extractSymbols(OUT.model) : [];
+  OUT.flat = flattenSymbols(OUT.symbols);
+  renderCrumbs();
+  if (currentView === 'outline') renderOutline();
+}, 250);
+function renderOutline() {
+  const t = tabs.get(active), body = $('#outline-body'), q = $('#outline-filter').value.trim();
+  $('#outline-title').textContent = OUT.model ? `Outline · ${t.name}` : 'Outline';
+  if (!OUT.model) { body.replaceChildren(h('div', { class: 'tree-msg' }, 'Open a file to see its outline.')); return; }
+  if (!OUT.flat.length) { body.replaceChildren(h('div', { class: 'tree-msg' }, 'No symbols found in this file.')); return; }
+  const chain = symbolChain(editor.getPosition()?.lineNumber || 0), cur = chain[chain.length - 1];
+  const row = (s, depth) => h('div', { class: 'ol-row' + (s === cur ? ' cur' : ''), style: `padding-left:${12 + depth * 14}px`, title: `${s.kind} · line ${s.line}`,
+    onclick: () => { editor.revealLineInCenter(s.line); editor.setPosition({ lineNumber: s.line, column: s.col }); editor.focus(); },
+    html: `<span class="ol-kind ok-${s.kind}">${KIND_LABEL[s.kind]}</span><span class="ol-name">${esc(s.name)}</span><span class="ol-line">${s.line}</span>` });
+  const rows = [];
+  if (q) for (const s of OUT.flat) { if (fuzzy(q, s.name)) rows.push(row(s, 0)); }
+  else { const walk = (list, d) => { for (const s of list) { rows.push(row(s, d)); if (s.children) walk(s.children, d + 1); } }; walk(OUT.symbols, 0); }
+  body.replaceChildren(...(rows.length ? rows : [h('div', { class: 'tree-msg' }, 'No matching symbols.')]));
+  $('.ol-row.cur', body)?.scrollIntoView({ block: 'nearest' });
+}
+const onCursorMoved = debounce(() => { renderCrumbs(); if (currentView === 'outline' && OUT.model) renderOutline(); }, 150);
+
+// ── Problems panel ────────────────────────────────────────────────────────────
+let panelTab = 'terminal';
+function setPanelTab(name) {
+  panelTab = name;
+  $('#term-panel').classList.toggle('problems', name === 'problems');
+  $$('.ptab').forEach(b => b.classList.toggle('active', b.dataset.ptab === name));
+  if (name === 'terminal') { setTimeout(fitTerm, 0); term?.focus(); } else renderProblems();
+}
+function renderProblems() {
+  const S8 = monaco.MarkerSeverity;
+  const all = monaco.editor.getModelMarkers({}).filter(m => m.resource.scheme === 'file' && m.severity >= S8.Info);
+  const counted = all.filter(m => m.severity >= S8.Warning).length;
+  $('#problems-count').textContent = counted ? String(counted) : '';
+  if (panelTab !== 'problems') return;
+  const view = $('#problems-view');
+  if (!all.length) { view.replaceChildren(h('div', { class: 'pr-empty' }, 'No problems have been detected in your open files.')); return; }
+  const groups = new Map();
+  for (const m of all) { const p = m.resource.path; if (!groups.has(p)) groups.set(p, []); groups.get(p).push(m); }
+  const rows = [];
+  for (const [p, ms] of [...groups].sort((a, b) => a[0].localeCompare(b[0]))) {
+    ms.sort((a, b) => b.severity - a.severity || a.startLineNumber - b.startLineNumber);
+    rows.push(h('div', { class: 'pr-file', onclick: () => openFile(p), html: `${fileIcon(basename(p))}<span>${esc(basename(p))}</span><span class="sdir">${esc(rel(dirname(p)))}</span><span class="cnt">${ms.length}</span>` }));
+    for (const m of ms) {
+      const ic = m.severity >= S8.Error ? `<span class="sb-err">${icon('error')}</span>` : m.severity >= S8.Warning ? `<span class="sb-warn">${icon('warn')}</span>` : `<span style="color:var(--blue)">${icon('info')}</span>`;
+      rows.push(h('div', { class: 'pr-row', title: m.message, onclick: () => openFile(p, { line: m.startLineNumber, col: m.startColumn - 1 }),
+        html: `${ic}<span class="msg">${esc(m.message.split('\n')[0])}</span><span class="src">${esc(m.source || m.owner || '')} [Ln ${m.startLineNumber}, Col ${m.startColumn}]</span>` }));
+    }
+  }
+  view.replaceChildren(...rows);
+}
+const renderProblemsSoon = debounce(renderProblems, 250);
+
+// ── Tasks ─────────────────────────────────────────────────────────────────────
+async function runTask(anchor) {
+  anchor = anchor || clickAnchor();
+  let tasks = [];
+  try { tasks = await api('/api/tasks?path=' + enc(S.cwd)); } catch {}
+  tasks.sort((a, b) => (b.label === S.lastTask) - (a.label === S.lastTask));
+  const v = await askPick('Run task', [
+    ...(tasks.length ? tasks.map(t => ({ label: t.label, desc: t.label === S.lastTask ? `last run · ${t.command}` : t.detail ? `${t.command} — ${t.detail}` : t.command, value: t, icon: icon('tasks') }))
+      : [{ note: 'No npm scripts, Makefile, Cargo, Go or Python project found here' }]),
+    { sep: true },
+    { label: 'Configure tasks…', desc: 'Add your own commands in .ocode/tasks.json', value: 'configure', icon: icon('sliders') },
+  ], { anchor, width: 420 });
+  if (v === 'configure') return configureTasks();
+  if (v) { setSettings({ lastTask: v.label }); runInTerminal(v.command); }
+}
+async function configureTasks() {
+  const p = join(S.cwd, '.ocode/tasks.json');
+  try { await api('/api/file?path=' + enc(p)); }
+  catch {
+    await post('/api/file', { path: p, content: JSON.stringify([
+      { label: 'Say hello', command: 'echo "Hello from ocode"', detail: 'An example — replace it with your own commands' }], null, 2) + '\n' });
+    invalidateFileIndex(); refreshTreeSoon();
+  }
+  openFile(p);
 }
 
 // ── Side panel (used by plugins, e.g. Markdown preview) ───────────────────────
@@ -2062,17 +3467,17 @@ function addStatusItem({ text = '', tooltip = '', align = 'right', onClick } = {
 const sbEl = (id, onclick, title) => h('div', { class: 'sb-item', id, title, onclick });
 function buildStatusbar() {
   $('#sb-left').replaceChildren(
-    sbEl('sb-branch', () => runInTerminal('git status'), 'Git branch — click for git status'),
-    sbEl('sb-problems', () => { if (editor.getModel()) { editor.focus(); editor.trigger('sb', 'editor.action.marker.next'); } }, 'Problems — click to jump'),
+    sbEl('sb-branch', e => pickBranch(e.currentTarget), 'Git branch — click to switch'),
+    sbEl('sb-problems', () => { setPanel('term', true); setPanelTab('problems'); }, 'Problems — click to list them'),
     pluginStatus.left);
   $('#sb-right').replaceChildren(pluginStatus.right,
     sbEl('sb-pos', () => editor.getModel() && quickOpen(':'), 'Go to line'),
-    sbEl('sb-indent', () => runCommand('editor.indentation'), 'Indentation'),
-    sbEl('sb-eol', () => runCommand('editor.toggleEol'), 'Line endings'),
-    sbEl('sb-lang', () => runCommand('editor.language'), 'Language mode'),
+    sbEl('sb-indent', e => runCommand('editor.indentation', e.currentTarget), 'Indentation'),
+    sbEl('sb-eol', e => runCommand('editor.toggleEol', e.currentTarget), 'Line endings'),
+    sbEl('sb-lang', e => runCommand('editor.language', e.currentTarget), 'Language mode'),
     sbEl('sb-ai', aiStatusMenu, 'AI autocomplete'),
-    sbEl('sb-effort', () => runCommand('ai.effort'), 'Effort level'),
-    sbEl('sb-model', () => runCommand('ai.model'), 'Model'));
+    sbEl('sb-effort', e => runCommand('ai.effort', e.currentTarget), 'Effort — how hard ocode thinks'),
+    sbEl('sb-model', e => runCommand('ai.model', e.currentTarget), 'Chat model'));
 }
 function renderPosStatus() {
   const m = editor?.getModel(), el = $('#sb-pos');
@@ -2084,7 +3489,9 @@ function renderPosStatus() {
 function renderStatus() {
   if (!$('#sb-branch')) return;
   const m = editor?.getModel();
-  $('#sb-branch').innerHTML = git.branch ? `${icon('branch')}${esc(git.branch)}${git.changes ? ` <span style="color:var(--yellow)">● ${git.changes}</span>` : ''}` : '';
+  const st = SCM.status;
+  $('#sb-branch').innerHTML = git.branch ? `${icon('gitBranch')}${esc(git.branch)}${git.changes ? ` <span style="color:var(--yellow)">● ${git.changes}</span>` : ''}` +
+    (st?.upstream && (st.ahead || st.behind) ? ` <span>${st.behind}↓ ${st.ahead}↑</span>` : '') : '';
   if (m) {
     const mk = monaco.editor.getModelMarkers({ resource: m.uri });
     const errs = mk.filter(x => x.severity === monaco.MarkerSeverity.Error).length, warns = mk.filter(x => x.severity === monaco.MarkerSeverity.Warning).length;
@@ -2096,25 +3503,25 @@ function renderStatus() {
     $('#sb-lang').textContent = l?.aliases?.[0] || m.getLanguageId();
   } else for (const id of ['sb-problems', 'sb-indent', 'sb-eol', 'sb-lang']) $('#' + id).textContent = '';
   renderPosStatus();
-  $('#sb-effort').textContent = `effort: ${S.effort}`;
+  $('#sb-effort').innerHTML = `${effortIcon(S.effort)}${esc(EFFORT_INFO[S.effort]?.[0] || S.effort)}`;
   $('#sb-model').innerHTML = `${icon('sparkle')}${esc(shortModel(S.model))}`;
 }
 function renderChrome() {
   $('#tb-folder').innerHTML = `${icon('folder')}<span>${esc(basename(S.cwd))}</span>`;
   $('#tb-folder').title = `${S.cwd} — Open folder (Ctrl+O)`;
-  const e = $('#tb-effort'); e.textContent = S.effort; e.className = 'effort ' + S.effort;
-  $('#tb-model span:last-child').textContent = shortModel(S.model);
-  $('#tb-model').title = S.model;
-  $('#ci-effort').textContent = `effort: ${S.effort}`;
+  $('#ci-model').innerHTML = `${icon('sparkle')}<span>${esc(shortModel(S.model))}</span>${icon('chev', 'caret')}`;
+  $('#ci-model').title = `Chat model: ${S.model}`;
+  $('#ci-effort').innerHTML = `${effortIcon(S.effort)}<span>${esc(EFFORT_INFO[S.effort]?.[0] || S.effort)}</span>${icon('chev', 'caret')}`;
   renderStatus(); renderChatFilePill();
 }
 function renderChatFilePill() {
   const t = tabs.get(active), el = $('#ci-file');
   if (t?.kind !== 'text') { el.style.display = 'none'; return; }
-  const sel = editor.getSelection();
+  const sel = editor.getSelection(), share = S.shareActiveFile !== false;
   el.style.display = '';
-  el.textContent = t.name + (sel && !sel.isEmpty() ? `:${sel.startLineNumber}-${sel.endLineNumber}` : '');
-  el.title = `${tilde(t.path)} is shared with ocode as context`;
+  el.classList.toggle('off', !share);
+  el.innerHTML = `${fileIcon(t.name)}<span>${esc(t.name + (sel && !sel.isEmpty() ? `:${sel.startLineNumber}-${sel.endLineNumber}` : ''))}</span>`;
+  el.title = share ? `ocode can see ${tilde(t.path)} — click to stop sharing it` : `The open file isn't shared — click to let ocode see ${t.name}`;
 }
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -2178,6 +3585,8 @@ function showView(name, forceOpen = false) {
   if (name === 'search') { const i = $('#search-input'); const sel = editor.getModel() && editor.getModel().getValueInRange(editor.getSelection()); if (sel && !sel.includes('\n')) { i.value = sel; runSearch(); } i.focus(); i.select(); }
   if (name === 'settings') renderSettingsView();
   if (name === 'plugins') renderPluginsView();
+  if (name === 'scm') { renderScm(); refreshScm(); }
+  if (name === 'outline') renderOutline();
 }
 
 // ── Settings view ─────────────────────────────────────────────────────────────
@@ -2202,6 +3611,12 @@ const SETTINGS_SCHEMA = [
     { key: 'wordWrap', label: 'Word wrap', type: 'select', options: sel('off', 'on', 'bounded') },
     { key: 'autoSave', label: 'Auto save', desc: 'Save one second after you stop typing', type: 'bool' },
     { key: 'formatOnSave', label: 'Format on Ctrl+S', desc: 'JS, TS, JSON, CSS and HTML', type: 'bool' },
+  ]],
+  ['Git', [
+    { key: 'gitGutter', label: 'Change markers in the gutter', desc: 'Green = added, blue = changed, red = deleted lines', type: 'bool' },
+    { key: 'gitBlame', label: 'Inline blame', desc: 'Show who last changed the current line', type: 'bool' },
+    { key: 'gitName', label: 'Commit author name', desc: 'Used when Git has no user.name configured', type: 'text' },
+    { key: 'gitEmail', label: 'Commit author email', type: 'text' },
   ]],
   ['Explorer', [
     { key: 'sortOrder', label: 'Sort files by', type: 'select', options: () => Object.entries(SORTS).map(([k, [l]]) => [k, l]) },
@@ -2246,7 +3661,12 @@ function makePluginApi(name) {
     name, monaco, icon, h, esc,
     get editor() { return editor; },
     get cwd() { return S.cwd; },
-    get activeFile() { return active; },
+    get activeFile() { return tabs.get(active)?.path ?? null; },
+    git: {
+      status: () => api('/api/git/status?path=' + enc(S.cwd)),
+      run: (args, opts = {}) => gitCmd(args, opts).finally(() => refreshGitSoon()),
+      refresh: () => refreshGit(),
+    },
     get home() { return INFO.home; },
     get configDir() { return INFO.configDir; },
     registerCommand: c => registerCommand({ ...c, source: name }),
@@ -2268,9 +3688,17 @@ function makePluginApi(name) {
     ai: {
       ask: (prompt, o = {}) => streamText('/api/ai', { prompt, system: o.system, model: o.model, temperature: o.temperature }, o.signal, o.onChunk),
       edit: (o = {}) => aiEdit(o),
+      editFiles: (o = {}) => runMultiEdit(o),
     },
     layout: { get: n => panelVisible(n), set: (n, v, persist = true) => setPanel(n, !!v, persist), toggle: togglePanel },
-    ui: { input: askInput, pick: askPick, confirm: askConfirm, menu: showMenu, sidePanel: openSidePanel, diff: reviewDiff },
+    ui: {
+      input: askInput, pick: askPick, confirm: askConfirm, menu: showMenu, sidePanel: openSidePanel, diff: reviewDiff,
+      openDiff: ({ title = 'Diff', original = '', modified = '', language, path } = {}) => {
+        const lang = language || (path ? langForPath(path) : 'plaintext');
+        const o = monaco.editor.createModel(original, lang), m = monaco.editor.createModel(modified, lang);
+        openDiffTab({ key: `plugin:${name}:${title}`, path: path || title, title, titleHtml: `<b>${esc(title)}</b>`, original: o, modified: m, owned: [o, m] });
+      },
+    },
     files: {
       read: async p => (await api('/api/file?path=' + enc(absPath(p)))).content,
       write: async (p, content) => { const ap = absPath(p); await post('/api/file', { path: ap, content }); refreshTreeSoon(); reloadIfOpen(ap); },
@@ -2293,7 +3721,7 @@ async function loadPlugins() {
     plugins.push(rec);
     if (!p.enabled) continue;
     try {
-      const code = await fetch('/plugins/' + enc(p.file)).then(r => r.text());
+      const code = await fetch('/plugins/' + p.file.split('/').map(enc).join('/')).then(r => r.text());
       await new Function('ocode', 'monaco', `${code}\n//# sourceURL=ocode-plugin:///${p.file}`)(makePluginApi(p.name), monaco);
       rec.status = 'loaded';
     } catch (e) {
@@ -2303,7 +3731,7 @@ async function loadPlugins() {
     }
   }
 }
-const PLUGIN_DOC = `// ~/.config/ocode/plugins/<name>.js — runs when ocode starts.
+const PLUGIN_DOC = `// ~/.config/ocode/plugins/<name>/index.js (+ README.md), or <name>.js — runs when ocode starts.
 ocode.registerCommand({ id, label, keys: 'Ctrl+Alt+K', global, run })
 ocode.registerSlashCommand({ name, args, desc, run(argsArray) })
 ocode.registerTheme(id, { label, type: 'dark'|'light', p: {bg0, fg0, accent…}, tokens: {keyword: '#ff79c6', comment: ['#6272a4','italic']} })
@@ -2315,11 +3743,14 @@ ocode.on('fileOpen'|'fileSave'|'themeChange'|'cwdChange'|'settingsChange'|'chatR
 await ocode.exec('cmd', { cwd, input, timeout }) → { code, stdout, stderr }
 await ocode.ai.ask(prompt, { system, onChunk })  → text from the chat model
 ocode.ai.edit({ range, instruction })          // AI rewrite with diff review
+ocode.ai.editFiles({ instruction, root })      // multi-file edit with review
 ocode.files.read / write / open / list / move / mkdir / trash
 ocode.terminal.run('npm test')
 ocode.chat.send(text) / insert(text) / system(html)
 await ocode.ui.input(title) / pick(title, items) / confirm(msg)
 ocode.ui.sidePanel({ title, render(el, panel) })  // panel beside the editor
+ocode.ui.openDiff({ title, original, modified, language }) // diff in an editor tab
+await ocode.git.status() · await ocode.git.run(['add', '-A']) → { code, stdout, stderr }
 await ocode.ui.diff({ original, modified, language, title }) → accepted text or null
 ocode.layout.get / set(name, show, persist) / toggle('sidebar'|'term'|'chat')
 ocode.home · ocode.configDir · ocode.cwd · ocode.activeFile
@@ -2333,12 +3764,20 @@ function renderPluginsView() {
     h('div', { class: 'plug-actions' },
       h('button', { class: 'btn primary', onclick: newPlugin }, 'New plugin'),
       h('button', { class: 'btn', onclick: () => { setCwd(INFO.pluginDir); showView('explorer', true); } }, 'Open folder'),
-      h('button', { class: 'btn', onclick: () => location.reload() }, 'Reload window')),
+      h('button', { class: 'btn', onclick: () => location.reload() }, 'Reload window'),
+      h('button', { class: 'btn', title: 'How plugins work, the full API and examples',
+        onclick: () => showReadme({ title: 'Plugin guide', readme: join(INFO.pluginDir, 'README.md') }) }, 'Plugin guide')),
     ...(plugins.length ? plugins.map(p => h('div', { class: 'plug ' + p.status },
-      h('div', { class: 'plug-top' }, h('span', { class: 'plug-name' }, p.name), h('span', { class: 'plug-status' }, p.status),
+      h('div', { class: 'plug-top' },
+        h('span', { class: 'plug-name' + (p.readme ? ' link' : ''), title: p.readme ? 'Show README' : '', onclick: () => p.readme && showReadme({ title: p.name, readme: p.readme, source: p.path }) }, p.name),
+        h('span', { class: 'plug-status' }, p.status),
         h('label', { class: 'switch', title: 'Enable or disable — applies after reload' }, h('input', { type: 'checkbox', checked: p.enabled, onchange: e => togglePlugin(p, e.target.checked) }), h('span'))),
+      p.description ? h('div', { class: 'plug-desc' }, p.description) : null,
       p.error ? h('div', { class: 'plug-err' }, p.error) : null,
-      h('div', { class: 'plug-links' }, h('a', { onclick: () => openFile(p.path) }, 'Edit source'))))
+      h('div', { class: 'plug-links' },
+        p.readme ? h('a', { onclick: () => showReadme({ title: p.name, readme: p.readme, source: p.path }) }, 'Readme') : null,
+        p.readme ? h('span', { class: 'dot-sep' }, '·') : null,
+        h('a', { onclick: () => openFile(p.path) }, 'Edit source'))))
       : [h('div', { class: 'empty' }, 'No plugins yet. Plugins are JavaScript files in ', h('code', {}, tilde(INFO.pluginDir)), '.')]),
     h('details', { class: 'api-doc' }, h('summary', {}, 'Plugin API reference'), h('pre', {}, PLUGIN_DOC)));
 }
@@ -2353,12 +3792,43 @@ async function newPlugin() {
   const name = await askInput('New plugin name', '', 'e.g. my-tools');
   if (!name) return;
   const slug = name.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-|-$/g, '');
-  const path = join(INFO.pluginDir, slug + '.js');
+  if (!slug) return;
+  const dir = join(INFO.pluginDir, slug), path = join(dir, 'index.js'), readme = join(dir, 'README.md');
   try { await post('/api/fs', { op: 'newfile', path }); } catch (e) { toast(e.message, 'error'); return; }
-  await post('/api/file', { path, content: `// ${slug} — an ocode plugin. Reload the window after editing (Ctrl+Shift+P → Reload Window).\n// See the Plugins panel for the full API reference.\n\nocode.registerCommand({\n  id: '${slug}.hello',\n  label: ${JSON.stringify(name + ': Say Hello')},\n  run() {\n    ocode.toast('Hello from ${slug}!', 'ok');\n  },\n});\n` });
-  plugins.push({ name: slug, file: slug + '.js', path, enabled: true, status: 'new' });
+  await post('/api/file', { path, content: `// ${slug} — an ocode plugin. Reload the window after editing (Ctrl+Shift+P → Reload Window).\n// The Plugin guide in the Plugins panel has the full API.\n\nocode.registerCommand({\n  id: '${slug}.hello',\n  label: ${JSON.stringify(name + ': Say Hello')},\n  run() {\n    ocode.toast('Hello from ${slug}!', 'ok');\n  },\n});\n` });
+  await post('/api/file', { path: readme, content: `# ${name}\n\nDescribe what ${name} does in one sentence — this line is shown in the Plugins panel.\n\n## Usage\n\n| Command | Keys |\n| --- | --- |\n| ${name}: Say Hello | — |\n\n## Notes\n\nAnything else people should know: requirements, settings, limitations.\n` });
+  plugins.push({ name: slug, file: `${slug}/index.js`, path, readme, description: '', enabled: true, status: 'new' });
   renderPluginsView();
   openFile(path);
+}
+async function showReadme({ title, readme, source }) {
+  let text;
+  try { text = (await api('/api/file?path=' + enc(readme))).content; }
+  catch (e) { toast(`Couldn't open ${basename(readme)}: ${e.message}`, 'error'); return; }
+  const dir = dirname(readme);
+  openSidePanel({ title: `${title} · README`, render: el => {
+    const doc = renderMarkdown(text);
+    doc.classList.add('readme-view');
+    // Keep link clicks inside the app: web links open in the browser, relative links open the file (READMEs as READMEs).
+    doc.addEventListener('click', e => {
+      const a = e.target.closest('a');
+      if (!a) return;
+      e.preventDefault();
+      const href = a.getAttribute('href') || '';
+      if (/^https?:\/\//.test(href)) { post('/api/open-external', { url: href }); return; }
+      if (!href || href.startsWith('#')) {
+        const id = href.slice(1);
+        [...doc.querySelectorAll('h1,h2,h3,h4')].find(hd => hd.textContent.trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-') === id)?.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      const target = normPath(join(dir, decodeURIComponent(href.split('#')[0])));
+      if (target.endsWith('.md')) showReadme({ title: basename(dirname(target)) === basename(INFO.pluginDir) ? 'Plugin guide' : basename(dirname(target)), readme: target });
+      else openFile(target);
+    });
+    el.append(h('div', { class: 'readme-bar' },
+      h('button', { class: 'btn', onclick: () => openFile(readme) }, 'Edit README'),
+      source ? h('button', { class: 'btn', onclick: () => openFile(source) }, 'Edit source') : null), doc);
+  } });
 }
 
 // ── Built-in commands ─────────────────────────────────────────────────────────
@@ -2402,25 +3872,38 @@ function registerBuiltins() {
   C('editor.find', 'Editor: Find', () => editor.trigger('cmd', 'actions.find'), undefined, { when: hasText });
   C('editor.replace', 'Editor: Replace', () => editor.trigger('cmd', 'editor.action.startFindReplaceAction'), undefined, { when: hasText });
   C('editor.monacoCommands', 'Editor: Show Editor Commands', () => { editor.focus(); editor.trigger('cmd', 'editor.action.quickCommand'); }, 'F1', { when: hasText });
-  C('editor.language', 'Editor: Change Language Mode…', async () => {
+  C('editor.language', 'Editor: Change Language Mode…', async anchor => {
     const m = editor.getModel(); if (!m) return;
-    const id = await askPick('Select language mode', monaco.languages.getLanguages().map(l => ({ label: l.aliases?.[0] || l.id, detail: l.id, value: l.id })));
+    const cur = m.getLanguageId();
+    const items = monaco.languages.getLanguages().map(l => ({ label: l.aliases?.[0] || l.id, desc: (l.extensions || []).slice(0, 5).join('  '), value: l.id, checked: l.id === cur }))
+      .sort((a, b) => collator.compare(a.label, b.label));
+    const id = await askPick('Language mode', items, { anchor: anchor || clickAnchor(), width: 300 });
     if (id) { monaco.editor.setModelLanguage(m, id); renderStatus(); }
   });
-  C('editor.indentation', 'Editor: Change Indentation…', async () => {
+  C('editor.indentation', 'Editor: Change Indentation…', async anchor => {
     const m = editor.getModel(); if (!m) return;
-    const v = await askPick('Indentation for this file', [
-      ...[2, 4, 8].map(n => ({ label: `Indent Using Spaces: ${n}`, value: { insertSpaces: true, tabSize: n } })),
-      ...[2, 4, 8].map(n => ({ label: `Indent Using Tabs: ${n}`, value: { insertSpaces: false, tabSize: n } })),
-      { label: 'Detect from Content', value: 'detect' },
-      { label: 'Convert Indentation to Spaces', value: 'toSpaces' }, { label: 'Convert Indentation to Tabs', value: 'toTabs' }]);
+    const o = m.getOptions();
+    const v = await askPick('Indentation', [
+      { head: 'Spaces' }, ...[2, 4, 8].map(n => ({ label: `${n} spaces`, value: { insertSpaces: true, tabSize: n }, checked: o.insertSpaces && o.tabSize === n })),
+      { head: 'Tabs' }, ...[2, 4, 8].map(n => ({ label: `Tabs, ${n} wide`, value: { insertSpaces: false, tabSize: n }, checked: !o.insertSpaces && o.tabSize === n })),
+      { sep: true },
+      { label: 'Detect from content', value: 'detect' },
+      { label: 'Convert indentation to spaces', value: 'toSpaces' }, { label: 'Convert indentation to tabs', value: 'toTabs' }],
+      { anchor: anchor || clickAnchor(), width: 260 });
     if (v === 'detect') m.detectIndentation(S.insertSpaces, S.tabSize);
     else if (v === 'toSpaces') editor.trigger('cmd', 'editor.action.indentationToSpaces');
     else if (v === 'toTabs') editor.trigger('cmd', 'editor.action.indentationToTabs');
     else if (v) m.updateOptions(v);
     renderStatus();
   });
-  C('editor.toggleEol', 'Editor: Toggle Line Endings (LF/CRLF)', () => { const m = editor.getModel(); if (!m) return; m.setEOL(m.getEOL() === '\n' ? monaco.editor.EndOfLineSequence.CRLF : monaco.editor.EndOfLineSequence.LF); renderStatus(); });
+  C('editor.toggleEol', 'Editor: Change Line Endings…', async anchor => {
+    const m = editor.getModel(); if (!m) return;
+    const lf = m.getEOL() === '\n';
+    const v = await askPick('Line endings', [
+      { label: 'LF', desc: 'Linux and macOS', value: 'LF', checked: lf },
+      { label: 'CRLF', desc: 'Windows', value: 'CRLF', checked: !lf }], { anchor: anchor || clickAnchor(), width: 220 });
+    if (v) { m.setEOL(v === 'LF' ? monaco.editor.EndOfLineSequence.LF : monaco.editor.EndOfLineSequence.CRLF); renderStatus(); }
+  });
   C('run.file', 'Run: Run Active File', () => runFile(), 'F5', { global: true });
   C('terminal.new', 'Terminal: Restart Shell', () => { term.reset(); connectTerm(); setPanel('term', true); term.focus(); });
   C('terminal.clear', 'Terminal: Clear', () => term.clear());
@@ -2431,32 +3914,62 @@ function registerBuiltins() {
   C('ai.explainSelection', 'ocode: Explain Selection or File', () => { const s = selectionSnippet(); if (s) sendChat(`Explain this code:\n${s}`); else if (active) sendChat(`Explain what ${rel(active)} does.`); else toast('Open a file first', 'warn'); });
   C('ai.fixSelection', 'ocode: Fix Selection or File', () => { const s = selectionSnippet(); if (s) sendChat(`Find and fix bugs in this code, editing the file directly:\n${s}`); else if (active) sendChat(`Find and fix bugs in ${rel(active)}.`); else toast('Open a file first', 'warn'); });
   C('ai.inlineEdit', 'ocode: Edit with AI (inline)…', () => aiEdit(), 'Ctrl+K', { when: hasText });
+  C('ai.multiEdit', 'ocode: Edit Multiple Files…', () => runMultiEdit(), 'Ctrl+I', { global: true });
+  C('ai.undoMultiEdit', 'ocode: Undo Last Multi-File Edit', undoMultiEdit);
+  C('ai.fixOpenFiles', 'ocode: Fix Problems in All Open Files', fixOpenFiles);
   C('ai.fixFile', 'ocode: Fix All Problems in File', aiFixFile);
   C('ai.toggleComplete', 'ocode: Toggle AI Autocomplete', () => { setSettings({ aiComplete: S.aiComplete === false }); toast(`AI autocomplete ${S.aiComplete ? 'on' : 'off'}`, 'ok', 1500); });
   C('ai.triggerComplete', 'ocode: Suggest Code Here', () => { editor.focus(); editor.trigger('ocode', 'editor.action.inlineSuggest.trigger', {}); }, 'Alt+\\', { when: hasText });
   C('ai.completeModel', 'ocode: Choose Autocomplete Model…', pickCompleteModel);
   C('ai.pullCompleteModel', 'ocode: Download Autocomplete Model', pullCompleteModel);
-  C('explorer.sort', 'Explorer: Sort Files By…', async () => {
-    const v = await askPick('Sort files by', Object.entries(SORTS).map(([k, [l]]) => ({ label: l, detail: k === (S.sortOrder || 'name') ? 'current' : '', value: k })));
-    if (v) setSettings({ sortOrder: v });
-  });
+  C('explorer.sort', 'Explorer: Sort Files By…', () => sortMenu());
   C('view.closeSide', 'View: Close Side Panel', closeSidePanel);
   C('ai.newChat', 'ocode: New Chat', newChat);
   C('ai.compact', 'ocode: Compact Conversation', compactChat);
   C('ai.stop', 'ocode: Stop Generating', () => abortCtl?.abort());
-  C('ai.effort', 'ocode: Set Effort…', async () => { const v = await askPick('Effort level', Object.entries(EFFORT_PROMPTS).map(([k, d]) => ({ label: k, detail: d, value: k }))); if (v) setSettings({ effort: v }); });
-  C('ai.model', 'ocode: Switch Model…', async () => {
-    await loadModels();
-    const v = await askPick('Model', MODELS.map(m => ({ label: shortModel(m), detail: m === S.model ? 'current' : m.includes('/') ? m.split('/').slice(0, -1).join('/') : '', value: m })));
-    if (v) setSettings({ model: v });
+  C('ai.effort', 'ocode: Set Effort…', pickEffort);
+  C('ai.model', 'ocode: Switch Model…', pickModel);
+  C('search.everywhere', 'Search Everywhere (Shift Shift)', searchEverywhere);
+  C('file.recent', 'File: Recent Files…', recentFilesPicker, 'Ctrl+E', { global: true });
+  C('file.openRecentFolder', 'File: Open Recent Folder…', recentFoldersPicker);
+  C('editor.gotoSymbol', 'Editor: Go to Symbol in File…', () => quickOpen('@'), 'Ctrl+Shift+O', { when: hasText });
+  C('view.scm', 'View: Source Control', () => showView('scm', true), 'Ctrl+Shift+G', { global: true });
+  C('view.outline', 'View: Outline', () => showView('outline', true));
+  C('view.problems', 'View: Problems', () => { setPanel('term', true); setPanelTab('problems'); }, 'Ctrl+Shift+M', { global: true });
+  C('task.run', 'Tasks: Run Task…', a => runTask(a), 'Ctrl+Shift+B', { global: true });
+  C('task.configure', 'Tasks: Configure Tasks', configureTasks);
+  C('history.local', 'Local History: Show History for File…', () => showLocalHistory());
+  C('git.openChanges', 'Git: Open Changes', () => openFileChanges(), undefined, { when: hasText });
+  C('git.fileHistory', 'Git: File History…', () => showFileHistory(), undefined, { when: hasText });
+  C('git.repoHistory', 'Git: Show History…', showRepoHistory);
+  C('git.commit', 'Git: Commit', () => scmCommit());
+  C('git.commitAll', 'Git: Commit All', () => scmCommit({ all: true }));
+  C('git.commitPush', 'Git: Commit & Push', () => scmCommit({ push: true }));
+  C('git.amend', 'Git: Amend Last Commit', () => scmCommit({ amend: true }));
+  C('git.generateMessage', 'Git: Write Commit Message with ocode', async () => { showView('scm', true); await scmGenerateMessage(); });
+  C('git.stageFile', 'Git: Stage Current File', () => { const p = tabs.get(active)?.path; if (p) scmStage([{ path: p }]); }, undefined, { when: hasText });
+  C('git.stageAll', 'Git: Stage All Changes', () => scmRun('Stage', () => gitCmd(['add', '-A'])));
+  C('git.push', 'Git: Push', scmPush);
+  C('git.pull', 'Git: Pull', scmPull);
+  C('git.sync', 'Git: Sync (Pull + Push)', scmSync);
+  C('git.fetch', 'Git: Fetch', scmFetch);
+  C('git.branch', 'Git: Switch Branch…', a => pickBranch(a));
+  C('git.init', 'Git: Initialize Repository', () => scmRun('Initialize', () => gitCmd(['init'])));
+  C('git.toggleBlame', 'Git: Toggle Inline Blame', () => setSettings({ gitBlame: S.gitBlame === false }));
+  C('git.blameCommit', 'Git: Show Commit for Current Line', () => {
+    if (!BLAME.info?.sha || BLAME.info.uncommitted) { toast('This line has no commit yet', 'warn'); return; }
+    runInTerminal(`git --no-pager show ${BLAME.info.sha}`);
   });
   C('help.keys', 'Help: Keyboard Shortcuts', () => { setPanel('chat', true); slashHelp(); });
 }
 function cycleTab(d) { const keys = [...tabs.keys()]; if (!keys.length) return; const i = keys.indexOf(active); activate(keys[(i + d + keys.length) % keys.length]); }
 
+let MODEL_INFO = {};
 async function loadModels() {
-  try { MODELS = await api('/api/models'); } catch { MODELS = []; }
-  if (S.model && !MODELS.includes(S.model) && MODELS.length) { /* keep user's choice; it may be pulled later */ }
+  let list = [];
+  try { list = await api('/api/models'); } catch {}
+  MODELS = list.map(m => (typeof m === 'string' ? m : m.name));
+  MODEL_INFO = Object.fromEntries(list.filter(m => typeof m === 'object').map(m => [m.name, m]));
 }
 
 // ── Wiring ────────────────────────────────────────────────────────────────────
@@ -2465,24 +3978,27 @@ function wireUI() {
   $('#tb-search').innerHTML = `${icon('search')}<span>Search files, run commands</span><kbd>Ctrl P</kbd>`;
   $('#tb-search').onclick = () => quickOpen();
   $('#tb-folder').onclick = () => runCommand('file.openFolder');
-  $('#tb-effort').onclick = () => runCommand('ai.effort');
-  $('#tb-model').onclick = () => runCommand('ai.model');
   $('#tb-sidebar').innerHTML = icon('sidebar'); $('#tb-sidebar').onclick = () => togglePanel('sidebar');
   $('#tb-term').innerHTML = icon('panelBottom'); $('#tb-term').onclick = () => togglePanel('term');
   $('#tb-chat').innerHTML = icon('panelRight'); $('#tb-chat').onclick = () => togglePanel('chat');
-  const abIcons = { explorer: 'files', search: 'search', plugins: 'blocks', settings: 'sliders' };
-  for (const b of $$('.ab[data-view]')) { b.innerHTML = icon(abIcons[b.dataset.view]); b.onclick = () => showView(b.dataset.view); }
+  const abIcons = { explorer: 'files', search: 'search', scm: 'scm', outline: 'list', plugins: 'blocks', settings: 'sliders' };
+  for (const b of $$('.ab[data-view]')) { b.insertAdjacentHTML('afterbegin', icon(abIcons[b.dataset.view])); b.onclick = () => showView(b.dataset.view); }
   $('#ab-chat').innerHTML = icon('chat'); $('#ab-chat').onclick = () => togglePanel('chat');
   const acts = {
     newFile: ['filePlus', () => newFile()], newFolder: ['folderPlus', () => newFolder()], upFolder: ['up', () => setCwd(dirname(S.cwd))],
     refresh: ['refresh', () => { invalidateFileIndex(); refreshTree(); refreshGit(); }], collapse: ['collapse', () => { expanded.clear(); refreshTree(); }], sort: ['sort', sortMenu],
     runFile: ['play', () => runFile()], termClear: ['ban', () => term.clear()], termRestart: ['refresh', () => runCommand('terminal.new')],
     termMax: ['maximize', () => runCommand('terminal.maximize')], termHide: ['x', () => setPanel('term', false)],
+    runTask: ['tasks', e => runTask(e.currentTarget)], scmRefresh: ['refresh', () => refreshGit()], scmMore: ['more', scmMoreMenu],
     newChat: ['plus', newChat], chatHide: ['x', () => setPanel('chat', false)],
   };
   for (const b of $$('[data-act]')) { const [ic, fn] = acts[b.dataset.act]; b.innerHTML = icon(ic, ic === 'play' ? 'fill' : ''); b.onclick = fn; }
   $('#side-close').innerHTML = icon('x'); $('#side-close').onclick = closeSidePanel;
   $('#review-logo').innerHTML = LOGO;
+  $('#multi-logo').innerHTML = LOGO;
+  $('#multi-stop').onclick = () => ME.ctl?.abort();
+  $('#multi-cancel').onclick = closeMulti;
+  $('#multi-apply').onclick = applyMulti;
   $('#tree').addEventListener('contextmenu', e => { if (!e.target.closest('.row')) { e.preventDefault(); treeMenu(e, null, null); } });
   $('#explorer-title').onclick = () => runCommand('file.openFolder');
 
@@ -2490,6 +4006,8 @@ function wireUI() {
   dragSplit($('#split-chat'), $('#chat'), 'x', -1, 'chatWidth', 300, () => innerWidth * 0.6);
   dragSplit($('#term-split'), $('#term-panel'), 'y', -1, 'termHeight', 90, () => innerHeight * 0.8);
 
+  for (const b of $$('.ptab')) b.onclick = () => setPanelTab(b.dataset.ptab);
+  $('#outline-filter').addEventListener('input', renderOutline);
   $('#search-input').addEventListener('input', runSearch);
   $('#search-input').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
   for (const [id, key] of [['#search-case', 'case'], ['#search-regex', 'regex']]) $(id).onclick = () => { search[key] = !search[key]; $(id).classList.toggle('on', search[key]); runSearch(); };
@@ -2506,8 +4024,9 @@ function wireUI() {
     if (e.key === 'Escape' && busy) abortCtl?.abort();
   });
   $('#send-btn').onclick = () => { if (busy) { abortCtl?.abort(); return; } const v = input.value; input.value = ''; autosizeInput(); sendChat(v); };
-  $('#ci-effort').onclick = () => runCommand('ai.effort');
-  $('#ci-file').onclick = () => runCommand('ai.askSelection');
+  $('#ci-model').onclick = e => runCommand('ai.model', e.currentTarget);
+  $('#ci-effort').onclick = e => runCommand('ai.effort', e.currentTarget);
+  $('#ci-file').onclick = () => setSettings({ shareActiveFile: S.shareActiveFile === false });
   $('#messages').addEventListener('click', e => {
     const a = e.target.closest('a');
     if (a) { e.preventDefault(); const href = a.getAttribute('href') || ''; if (/^https?:\/\//.test(href)) post('/api/open-external', { url: href }).catch(err => toast(err.message, 'error')); else if (href && !href.startsWith('#')) openFile(absPath(href.replace(/^file:\/\//, ''))); return; }
@@ -2531,6 +4050,7 @@ async function boot() {
   applyTheme(S.theme);
   createEditor();
   registerAiProviders();
+  registerSymbolProviders();
   buildStatusbar();
   checkCompleteStatus();
   setInterval(() => { if (S.aiComplete !== false && (!AIC.status?.online || !AIC.status?.hasModel)) checkCompleteStatus(); }, 20000);
