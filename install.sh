@@ -2,9 +2,27 @@
 # Installs ocode for the current user: Python venv, editor libraries, launchers, plugins and an app-menu entry.
 #   ./install.sh          normal install
 #   ./install.sh --amd    also run a second Ollama on an AMD GPU (Vulkan, port 11435) for AI autocomplete
+# Or without cloning first (clones into $OCODE_DIR, default ~/.local/share/ocode):
+#   curl -fsSL https://raw.githubusercontent.com/404-not-found129/ocode/main/install.sh | bash
 set -euo pipefail
 
-APP="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# Piped from curl: fetch or update the repo, then run the installer from there.
+bootstrap() {
+  local dir="${OCODE_DIR:-$HOME/.local/share/ocode}"
+  command -v git >/dev/null || { echo "ocode needs git; install it and try again" >&2; exit 1; }
+  if [[ -d $dir/.git ]]; then
+    echo "→ updating $dir"
+    git -C "$dir" pull -q --ff-only
+  else
+    echo "→ downloading ocode to $dir"
+    git clone -q --depth 1 https://github.com/404-not-found129/ocode.git "$dir"
+  fi
+  exec bash "$dir/install.sh" "$@"
+}
+SRC="${BASH_SOURCE[0]:-}"
+if [[ -z $SRC || ! -f $(dirname "$SRC")/app.py ]]; then bootstrap "$@"; fi
+
+APP="$(cd "$(dirname "$(readlink -f "$SRC")")" && pwd)"
 BIN="$HOME/.local/bin"
 CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
 

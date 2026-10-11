@@ -45,6 +45,16 @@ ocode pairs a full Monaco editor (the editor inside VS Code) with an AI agent th
 
 ## Install
 
+One command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/404-not-found129/ocode/main/install.sh | bash
+```
+
+This clones ocode into `~/.local/share/ocode` (set `OCODE_DIR` to choose another folder) and runs the installer. Run it again to update. To pass options, such as `--amd` below, use `| bash -s -- --amd`.
+
+Or clone it yourself:
+
 ```bash
 git clone https://github.com/404-not-found129/ocode.git ~/Projects/ocode
 cd ~/Projects/ocode
