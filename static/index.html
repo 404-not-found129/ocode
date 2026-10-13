@@ -2119,7 +2119,8 @@ async function sendChat(text) {
         think.textContent += ev.content; think.scrollTop = think.scrollHeight;
         continue;
       }
-      if (ev.type === 'retract') { live?.remove(); live = null; liveText = ''; continue; }
+      if (ev.type === 'retract') { if (frame) cancelAnimationFrame(frame), frame = 0; live?.remove(); live = null; liveText = ''; continue; }
+      if (ev.type === 'notice') { turn.body.append(h('div', { class: 'chat-note' }, ev.content)); turn.thinking(true); continue; }
       if (ev.type === 'message') {
         aiText = ev.content || '';
         if (live) endLive(); else turn.body.append(renderMarkdown(aiText || '_(empty response)_'));
@@ -2196,6 +2197,7 @@ const SLASH = [
   { name: 'cwd', args: '[path]', desc: 'Change working folder', run: async a => { const p = a.length ? a.join(' ') : await pickFolder(); if (p) { await setCwd(p); appendSystem(`Working folder → <code>${esc(tilde(S.cwd))}</code>`); } } },
   { name: 'unrestricted', args: '[on|off]', desc: 'No refusals or disclaimers', run: a => setUnrestricted(a[0] ? /^(on|1|true|yes)$/i.test(a[0]) : !S.unrestricted) },
   { name: 'retry', args: '', desc: 'Ask the last question again', run: () => retryLast() },
+  { name: 'uncensored', args: '', desc: 'Download or switch to an uncensored model', run: () => pickUncensoredModel($('#ci-model')) },
   { name: 'clear', args: '', desc: 'Clear the conversation', run: () => newChat() },
   { name: 'new', args: '', desc: 'Start a new conversation', run: () => newChat() },
   { name: 'compact', args: '', desc: 'Summarise history to save context', run: () => compactChat() },
@@ -2301,11 +2303,48 @@ async function pickModel(anchor) {
   if (!MODELS.length) { toast("Couldn't reach Ollama to list models", 'error'); return; }
   const items = MODELS.map(m => {
     const p = modelParts(m), info = MODEL_INFO[m] || {};
-    return { value: m, title: m, label: p.name, icon: icon('sparkle'), checked: m === S.model,
-      desc: [info.parameter_size, p.quant || info.quantization_level, fmtSize(info.size || 0)].filter(x => x && x !== 'unknown').join(' · ') || m };
+    return { value: m, title: m, label: p.name, icon: icon(isUncensored(m) ? 'unlock' : 'sparkle'), checked: m === S.model,
+      desc: [isUncensored(m) && 'uncensored', info.parameter_size, p.quant || info.quantization_level, fmtSize(info.size || 0)].filter(x => x && x !== 'unknown').join(' · ') || m };
   });
-  const v = await askPick('Chat model', items, { anchor, width: 340, footer: 'Used for chat, Ctrl+K edits and AI fixes' });
+  const more = { value: '\u0000uncensored', label: 'Get an uncensored model…', icon: icon('unlock'), desc: 'Models with refusals removed from the weights' };
+  const v = await askPick('Chat model', [...items, more], { anchor, width: 340, footer: 'Used for chat, Ctrl+K edits and AI fixes' });
+  if (v === more.value) return pickUncensoredModel();
   if (v) setSettings({ model: v });
+}
+
+// Abliterated / uncensored models have refusals removed from their weights, which no prompt can fully do.
+const UNCENSORED_MODELS = [
+  ['huihui_ai/qwen2.5-coder-abliterate:7b', 'Qwen2.5 Coder 7B, abliterated', 'Coding · ~4.7 GB · fast on most GPUs'],
+  ['huihui_ai/qwen2.5-coder-abliterate:14b', 'Qwen2.5 Coder 14B, abliterated', 'Coding · ~9 GB · 12 GB+ VRAM'],
+  ['huihui_ai/qwen2.5-coder-abliterate:latest', 'Qwen2.5 Coder 32B, abliterated', 'Coding · ~20 GB · 24 GB VRAM'],
+  ['hf.co/mradermacher/Qwen2.5-Coder-32B-Instruct-Uncensored-GGUF:Q4_K_M', 'Qwen2.5 Coder 32B, uncensored', 'Coding · ~20 GB · ocode\'s default'],
+  ['huihui_ai/qwen3-coder-abliterated:latest', 'Qwen3 Coder 30B, abliterated', 'Coding · ~19 GB · MoE, quick for its size'],
+  ['huihui_ai/qwen3-abliterated:8b', 'Qwen3 8B, abliterated', 'General + thinking · ~5 GB'],
+  ['huihui_ai/qwen3-abliterated:14b', 'Qwen3 14B, abliterated', 'General + thinking · ~9 GB'],
+  ['huihui_ai/deepseek-r1-abliterated:14b', 'DeepSeek R1 14B, abliterated', 'Reasoning · ~9 GB'],
+  ['huihui_ai/gemma3-abliterated:12b', 'Gemma 3 12B, abliterated', 'General · ~8 GB'],
+  ['dolphin3', 'Dolphin 3 (Llama 3.1 8B)', 'General, uncensored fine-tune · ~5 GB'],
+  ['dolphin-mixtral', 'Dolphin Mixtral 8x7B', 'General, uncensored fine-tune · ~26 GB'],
+];
+const isUncensored = m => /abliterat|uncensored|dolphin|heretic/i.test(m);
+async function pickUncensoredModel(anchor) {
+  await loadModels();
+  const has = m => MODELS.includes(m) || MODELS.includes(m + ':latest');
+  const v = await askPick('Uncensored models', UNCENSORED_MODELS.map(([m, label, desc]) => ({
+    value: m, label, title: m, icon: icon(has(m) ? 'unlock' : 'insert'), checked: m === S.model, desc: has(m) ? `${desc} · installed` : desc })),
+    { anchor: anchor || clickAnchor(), width: 380, footer: 'Not installed yet? ocode downloads it from ollama.com' });
+  if (!v) return;
+  if (!has(v)) {
+    if (!await askConfirm(`Download ${v} from ollama.com? This can take a while.`, 'Download')) return;
+    const prog = showAiProgress(`Downloading ${shortModel(v)}…`);
+    try {
+      await streamText('/api/pull', { model: v }, prog.ctl.signal, txt => { $('#ai-progress-count').textContent = txt.trim().split('\n').pop(); });
+    } catch (e) { prog.done(); if (e.name !== 'AbortError') toast('Download failed: ' + e.message, 'error'); return; }
+    prog.done();
+    await loadModels();
+  }
+  setSettings({ model: MODELS.includes(v) ? v : MODELS.find(m => m === v + ':latest') || v });
+  toast(`Now using ${shortModel(S.model)}`, 'ok');
 }
 
 // ── AI: autocomplete, inline edits, quick fixes ───────────────────────────────
@@ -4021,6 +4060,7 @@ function registerBuiltins() {
   C('view.closeSide', 'View: Close Side Panel', closeSidePanel);
   C('ai.newChat', 'ocode: New Chat', newChat);
   C('ai.toggleUnrestricted', 'ocode: Toggle Unrestricted Mode', () => setUnrestricted(!S.unrestricted));
+  C('ai.uncensoredModel', 'ocode: Get an Uncensored Model…', () => pickUncensoredModel());
   C('ai.retry', 'ocode: Retry Last Message', retryLast);
   C('ai.compact', 'ocode: Compact Conversation', compactChat);
   C('ai.stop', 'ocode: Stop Generating', () => abortCtl?.abort());
