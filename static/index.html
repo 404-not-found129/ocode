@@ -1963,12 +1963,16 @@ function getSystemPrompt() {
     project = `\nProject files (${fileIndex.files.length}${fileIndex.files.length > shown.length ? `, first ${shown.length} shown` : ''}):\n${shown.join('\n')}\n`;
   }
   return `You are ocode, an expert AI coding assistant built into the user's code editor, with full file system access.\n` +
-    `Working directory: ${S.cwd}${ctx}\n${project}Effort level: ${S.effort}. ${EFFORT_PROMPTS[S.effort] || ''}\n` +
+    `Working directory: ${S.cwd}\nThe user's home folder is ${INFO.home} — "my Projects folder" means ${INFO.home}/Projects, not /Projects.${ctx}\n${project}Effort level: ${S.effort}. ${EFFORT_PROMPTS[S.effort] || ''}\n` +
     `Tools: read_file, write_file, edit_file, list_files, search, find_files, run_command. Use them to do the work rather than describing it. ` +
     `Use search to find definitions and usages instead of reading files one by one. Files the user mentions with @path are attached in <file> tags. ` +
     `You can read and edit ANY file in the project, not just the open one. When a change affects several files (imports, callers, ` +
     `tests, config, docs), update all of them. Always read a file before editing it and prefer edit_file for small changes. ` +
-    `Reply in Markdown and put code in fenced blocks with a language tag.`;
+    `When the user asks you to make, create, build, fix or change something, do it with write_file / edit_file and verify it with ` +
+    `run_command; never paste whole files into the chat for the user to copy. Relative paths are relative to the working directory; ` +
+    `use absolute paths (e.g. ~/Projects/name) when the user names another folder. ` +
+    `If a tool returns an Error, fix the cause and try again; never say something worked unless a tool result shows it did. ` +
+    `Reply in Markdown: summarise what you did, and only show short snippets in fenced blocks with a language tag.`;
 }
 
 function renderChatEmpty() {
@@ -2126,7 +2130,7 @@ async function sendChat(text) {
   try {
     await getFileIndex().catch(() => {});
     const resp = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: abortCtl.signal,
-      body: JSON.stringify({ messages: chatMessages.map(({ shown, ...m }) => m), model: S.model, cwd: S.cwd, system: getSystemPrompt(), think: thinkOn() }) });
+      body: JSON.stringify({ messages: chatMessages.map(({ shown, nudge, ...m }) => m), model: S.model, cwd: S.cwd, system: getSystemPrompt(), think: thinkOn() }) });
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
     for await (const ev of sse(resp)) {
       if (ev.type === 'delta') {
@@ -2186,7 +2190,7 @@ async function sendChat(text) {
 // Drop the last exchange and ask the same question again.
 function retryLast() {
   if (busy) return;
-  const i = chatMessages.findLastIndex(m => m.role === 'user');
+  const i = chatMessages.findLastIndex(m => m.role === 'user' && !m.nudge);
   if (i < 0) return;
   const q = chatMessages[i].shown ?? chatMessages[i].content;
   chatMessages = chatMessages.slice(0, i);
@@ -2267,7 +2271,7 @@ function pickMention(f) {
 
 // ── Saved chats ──
 let chatId = null;
-const chatTitle = () => { const u = chatMessages.find(m => m.role === 'user'); return (u?.shown ?? u?.content ?? '').split('\n')[0].slice(0, 80); };
+const chatTitle = () => { const u = chatMessages.find(m => m.role === 'user' && !m.nudge); return (u?.shown ?? u?.content ?? '').split('\n')[0].slice(0, 80); };
 function saveChat() {
   if (!chatMessages.some(m => m.role === 'user')) return;
   chatId ||= Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
