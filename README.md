@@ -8,6 +8,9 @@ ocode pairs a full Monaco editor (the editor inside VS Code) with an AI agent th
 
 - **Editor:** Monaco with syntax highlighting for 80+ languages, minimap, multi-cursor, find and replace, bracket colors, sticky scroll, and auto-save. Open tabs are restored when you relaunch.
 - **AI chat agent:** ask for changes in plain English. The agent uses tools (`read_file`, `write_file`, `edit_file`, `list_files`, `run_command`) and opens the files it changes. It can see your open file and selection. Replies stream in as they're written, with tokens per second shown under each answer, plus Copy and Retry buttons. The agent remembers what it did with its tools in earlier turns.
+- **Smarter agent:** besides reading and editing files, the agent can `search` the project with ripgrep and `find_files` by glob, so it finds the right code quickly instead of opening files one by one. Turn on *Settings → AI → Ask before running commands* to approve each shell command with Allow / Decline buttons in the chat.
+- **@file mentions:** type `@` in the chat box to pick a project file; its contents are sent along with your message.
+- **Saved chats:** every conversation is saved per project folder. Recent ones appear on the empty chat screen, and `/history` (Ctrl+Shift+H) opens any of them, tool calls included.
 - **Unrestricted mode:** off by default. Turn it on with the lock button in the chat box, `/unrestricted`, or *Settings → AI*, and the model answers everything directly, without refusals, warnings or disclaimers. The chat box turns red while it's on. If the model still opens with a refusal ("I'm sorry, but I can't…"), ocode throws that reply away and retries with the answer already started, up to twice.
 - **Uncensored models:** `/uncensored` (or *Get an uncensored model…* in the model picker) lists abliterated and uncensored models such as Qwen2.5 Coder, Qwen3, DeepSeek R1, Gemma 3 and Dolphin, and downloads the one you pick. These have refusals removed from the weights, so they answer everything, which no prompt can guarantee on a normal model. Uncensored models get an unlocked icon in the picker.
 - **Speed:** the chat model is loaded in the background when ocode starts and kept in memory for 30 minutes, and the context window (*Settings → AI*, 16K tokens by default) is big enough for the project file list and tool results.
@@ -18,7 +21,7 @@ ocode pairs a full Monaco editor (the editor inside VS Code) with an AI agent th
 - **Integrated terminal:** a real shell (xterm.js on a pseudo-terminal). Press F5 to run the current file in Python, C, C++, Rust, Go, JavaScript, shell and more.
 - **Explorer:** sort by name, type, date or size; git status colors; create, rename, and move to trash; quick open (Ctrl+P); search across files with ripgrep (Ctrl+Shift+F).
 - **Six color themes:** ocode Dark and Light, One Dark, Dracula, Tokyo Night, Catppuccin Mocha. Plugins can add more.
-- **Slash commands in chat:** `/effort`, `/model`, `/unrestricted`, `/uncensored`, `/retry`, `/theme`, `/compact`, `/run`, `/fix`, `/explain`, `/edit` and more (`/help` lists them).
+- **Slash commands in chat:** `/effort`, `/model`, `/unrestricted`, `/uncensored`, `/retry`, `/history`, `/theme`, `/compact`, `/run`, `/fix`, `/explain`, `/edit` and more (`/help` lists them).
 
 ### Git
 

@@ -56,6 +56,7 @@ DEFAULT_SETTINGS = {
     "effort": "medium",
     "unrestricted": False,
     "contextSize": 16384,
+    "confirmCommands": False,
     "model": MODEL,
     "cwd": HOME,
     "recentFiles": [],
@@ -807,6 +808,18 @@ TOOLS = [
                        "required": ["path", "old_string", "new_string"]}}},
     {"type": "function", "function": {"name": "list_files", "description": "List files and folders in a directory.",
         "parameters": {"type": "object", "properties": {"path": {"type": "string"}}, "required": []}}},
+    {"type": "function", "function": {"name": "search",
+        "description": "Search file contents in the project with ripgrep. Returns path:line: text for each match. "
+                       "Use this to find where something is defined or used instead of reading files one by one.",
+        "parameters": {"type": "object", "properties": {
+            "pattern": {"type": "string", "description": "Regular expression (ripgrep syntax)"},
+            "path": {"type": "string", "description": "Folder or file to search, default the project"},
+            "glob": {"type": "string", "description": "Only files matching this glob, e.g. *.py"},
+            "ignore_case": {"type": "boolean"}}, "required": ["pattern"]}}},
+    {"type": "function", "function": {"name": "find_files",
+        "description": "Find files in the project by name with a glob, e.g. **/*.test.js or *config*.",
+        "parameters": {"type": "object", "properties": {"glob": {"type": "string"}, "path": {"type": "string"}},
+                       "required": ["glob"]}}},
     {"type": "function", "function": {"name": "run_command", "description": "Run a shell command (non-interactive) and return its output.",
         "parameters": {"type": "object", "properties": {"command": {"type": "string"},
                        "timeout": {"type": "integer", "description": "Seconds, default 120"}}, "required": ["command"]}}},
@@ -865,6 +878,36 @@ def run_tool(name, args, cwd=None):
             p = resolve(args.get("path") or cwd, cwd)
             entries = sorted(p.iterdir(), key=lambda x: (x.is_file(), x.name))
             return clip("\n".join(("/" if e.is_dir() else " ") + e.name for e in entries), TOOL_OUTPUT_LIMIT) or "(empty)"
+        if name == "search":
+            root = resolve(args.get("path") or cwd, cwd)
+            cmd = ['rg', '--line-number', '--no-heading', '--color=never', '--max-columns', '300', '--max-count', '30',
+                   '--max-filesize', '2M']
+            if args.get("ignore_case"):
+                cmd.append('-i')
+            if args.get("glob"):
+                cmd += ['--glob', str(args["glob"])]
+            cmd += ['--', str(args["pattern"]), str(root)]
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=30, cwd=cwd)
+            if r.returncode == 1:
+                return "No matches"
+            if r.returncode > 1:
+                return f"Error: {r.stderr.strip()}"
+            out = r.stdout.replace(str(root).rstrip('/') + '/', '')
+            return clip(out, TOOL_OUTPUT_LIMIT)
+        if name == "find_files":
+            root = resolve(args.get("path") or cwd, cwd)
+            g = str(args.get("glob") or '*')
+            if not root.is_dir():
+                return f"Error: {root} is not a folder"
+            # Run inside the folder so globs like src/** match relative paths.
+            r = subprocess.run(['rg', '--files', '--glob', g if '/' in g else f'**/{g}'],
+                               capture_output=True, text=True, timeout=30, cwd=root)
+            files = [os.path.normpath(f) for f in r.stdout.splitlines()]
+            files = [f for f in files if not any(part in SKIP_DIRS for part in f.split(os.sep))]
+            if not files:
+                return "No files found"
+            more = f"\n… and {len(files) - 300} more" if len(files) > 300 else ''
+            return "\n".join(sorted(files)[:300]) + more
         if name == "run_command":
             timeout = max(1, min(int(args.get("timeout") or 120), 900))
             try:
@@ -900,6 +943,27 @@ def set_cwd():
     return jsonify({'success': True})
 
 HISTORY_TOOL_CHARS = 3000
+APPROVAL_TIMEOUT = 600
+_approvals = {}  # id -> [threading.Event, approved?]
+
+@app.route('/api/chat/approve', methods=['POST'])
+def chat_approve():
+    d = request.json or {}
+    a = _approvals.get(d.get('id'))
+    if not a:
+        return jsonify({'error': 'That request has expired'}), 404
+    a[1] = bool(d.get('allow'))
+    a[0].set()
+    return jsonify({'success': True})
+
+def wait_for_approval(aid):
+    """Block the agent until the user allows or denies a command in the chat (or it times out)."""
+    a = _approvals[aid] = [threading.Event(), False]
+    try:
+        a[0].wait(APPROVAL_TIMEOUT)
+        return a[1]
+    finally:
+        _approvals.pop(aid, None)
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -998,8 +1062,15 @@ def chat():
                         args = {}
                 if not isinstance(args, dict):
                     args = {}
-                yield event(type='tool_call', name=name, args=args)
-                result = run_tool(name, args, cwd)
+                if name == 'run_command' and s.get('confirmCommands'):
+                    aid = secrets.token_urlsafe(8)
+                    yield event(type='tool_call', name=name, args=args, approval=aid)
+                    allowed = wait_for_approval(aid)
+                    result = run_tool(name, args, cwd) if allowed else \
+                        "Error: the user declined to run this command. Ask them or try another approach."
+                else:
+                    yield event(type='tool_call', name=name, args=args)
+                    result = run_tool(name, args, cwd)
                 yield event(type='tool_result', result=result)
                 full_messages.append({"role": "tool", "tool_name": name, "content": result})
                 added.append({"role": "tool", "tool_name": name, "content": clip(result, HISTORY_TOOL_CHARS)})
@@ -1008,6 +1079,55 @@ def chat():
 
     return Response(stream_with_context(generate()), mimetype='text/event-stream',
                     headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+
+# ── Saved chats: one JSON file per conversation, grouped by project folder ──────
+CHATS_DIR = Path(os.environ.get('XDG_DATA_HOME') or Path.home() / '.local/share') / 'ocode' / 'chats'
+CHATS_KEEP = 100
+
+def chat_file(cid):
+    if not re.fullmatch(r'[\w-]{1,64}', cid or ''):
+        abort(400)
+    return CHATS_DIR / f'{cid}.json'
+
+@app.route('/api/chats')
+def chats_list():
+    cwd = request.args.get('cwd')
+    out = []
+    for f in sorted(CHATS_DIR.glob('*.json'), key=lambda f: f.stat().st_mtime, reverse=True) if CHATS_DIR.is_dir() else []:
+        try:
+            c = json.loads(f.read_text())
+        except Exception:
+            continue
+        if cwd and c.get('cwd') != cwd:
+            continue
+        out.append({'id': f.stem, 'title': c.get('title', ''), 'cwd': c.get('cwd', ''), 'time': f.stat().st_mtime,
+                    'count': sum(1 for m in c.get('messages', []) if m.get('role') == 'user')})
+    return jsonify(out)
+
+@app.route('/api/chats/<cid>')
+def chats_get(cid):
+    f = chat_file(cid)
+    if not f.is_file():
+        abort(404)
+    return jsonify(json.loads(f.read_text()))
+
+@app.route('/api/chats/<cid>', methods=['POST'])
+def chats_save(cid):
+    f = chat_file(cid)
+    CHATS_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = f.with_suffix('.tmp')
+    tmp.write_text(json.dumps(request.json or {}))
+    tmp.replace(f)
+    old = sorted(CHATS_DIR.glob('*.json'), key=lambda f: f.stat().st_mtime)
+    for o in old[:max(0, len(old) - CHATS_KEEP)]:
+        o.unlink(missing_ok=True)
+    return jsonify({'success': True})
+
+@app.route('/api/chats/<cid>', methods=['DELETE'])
+def chats_delete(cid):
+    chat_file(cid).unlink(missing_ok=True)
+    return jsonify({'success': True})
 
 
 # ── Terminal ──────────────────────────────────────────────────────────────────

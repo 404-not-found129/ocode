@@ -179,6 +179,16 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 .ce-title{font-size:19px;font-weight:600;color:var(--fg0);letter-spacing:-.3px}
 .ce-sub{color:var(--fg2);font-size:12.5px;max-width:280px}
 .ce-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.ce-recent{margin-top:18px;width:100%;max-width:300px;text-align:left}
+.ce-recent-title{font-size:11px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:var(--fg3);margin:0 0 4px 8px}
+.ce-recent button{display:flex;width:100%;gap:8px;align-items:baseline;padding:6px 8px;border-radius:7px;font-size:12.5px;color:var(--fg1);text-align:left}
+.ce-recent button:hover{background:var(--bg2);color:var(--fg0)}
+.ce-recent button span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.ce-recent button span:last-child{color:var(--fg3);font-size:11px;flex-shrink:0}
+.approve{display:flex;gap:6px;align-items:center;padding:8px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--fg2)}
+.approve .btn{height:24px;padding:0 10px;font-size:12px}
+.approve .allow{background:var(--accent);color:#fff;border-color:transparent}
+.m-user .bubble .mention,.md .mention{color:var(--accent2);font-family:var(--font-mono);font-size:.92em}
 .chip{padding:6px 12px;border-radius:16px;border:1px solid var(--border);background:var(--bg2);color:var(--fg1);font-size:12px}
 .chip:hover{border-color:var(--accent);color:var(--fg0)}
 .m-user{display:flex;justify-content:flex-end;margin:4px 0 18px}
@@ -291,7 +301,8 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 .sl-item.sel{background:var(--bg3)}
 .sl-name{color:var(--accent2);font-family:var(--font-mono);font-weight:600}
 .sl-args{color:var(--fg3);font-family:var(--font-mono);font-size:11px}
-.sl-desc{color:var(--fg2);margin-left:auto;text-align:right;font-size:12px}
+.sl-desc{color:var(--fg2);margin-left:auto;text-align:right;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.sl-item .fi{flex-shrink:0}
 
 /* Status bar */
 #statusbar{height:24px;display:flex;align-items:stretch;background:var(--bg1);border-top:1px solid var(--border);font-size:12px;color:var(--fg2);flex-shrink:0;user-select:none;padding:0 4px}
@@ -1953,7 +1964,8 @@ function getSystemPrompt() {
   }
   return `You are ocode, an expert AI coding assistant built into the user's code editor, with full file system access.\n` +
     `Working directory: ${S.cwd}${ctx}\n${project}Effort level: ${S.effort}. ${EFFORT_PROMPTS[S.effort] || ''}\n` +
-    `Tools: read_file, write_file, edit_file, list_files, run_command. Use them to do the work rather than describing it. ` +
+    `Tools: read_file, write_file, edit_file, list_files, search, find_files, run_command. Use them to do the work rather than describing it. ` +
+    `Use search to find definitions and usages instead of reading files one by one. Files the user mentions with @path are attached in <file> tags. ` +
     `You can read and edit ANY file in the project, not just the open one. When a change affects several files (imports, callers, ` +
     `tests, config, docs), update all of them. Always read a file before editing it and prefer edit_file for small changes. ` +
     `Reply in Markdown and put code in fenced blocks with a language tag.`;
@@ -1964,6 +1976,14 @@ function renderChatEmpty() {
     h('div', { html: LOGO }), h('div', { class: 'ce-title' }, 'What are we building?'),
     h('div', { class: 'ce-sub', html: `ocode can read, write and run anything in <code>${esc(tilde(S.cwd))}</code>.` }),
     h('div', { class: 'ce-chips' }, ...SUGGESTIONS.map(s => h('button', { class: 'chip', onclick: () => sendChat(s.prompt()) }, s.label)))));
+  const cwd = S.cwd;
+  api('/api/chats?cwd=' + enc(cwd)).then(list => {
+    const box = $('.chat-empty');
+    if (!box || !list.length || S.cwd !== cwd) return;
+    box.append(h('div', { class: 'ce-recent' }, h('div', { class: 'ce-recent-title' }, 'Recent chats'),
+      ...list.slice(0, 4).map(c => h('button', { onclick: () => loadChat(c.id), title: c.title },
+        h('span', {}, c.title || '(untitled)'), h('span', {}, timeAgo(c.time))))));
+  }).catch(() => {});
 }
 const scrollChat = () => { const m = $('#messages'); m.scrollTop = m.scrollHeight; };
 
@@ -2024,14 +2044,14 @@ function appendSystem(html) {
   scrollChat();
 }
 
-const TOOL_META = { read_file: ['file', 'Read'], write_file: ['filePlus', 'Write'], create_file: ['filePlus', 'Write'], edit_file: ['edit', 'Edit'], list_files: ['folder', 'List'], run_command: ['terminal', 'Run'] };
+const TOOL_META = { read_file: ['file', 'Read'], write_file: ['filePlus', 'Write'], create_file: ['filePlus', 'Write'], edit_file: ['edit', 'Edit'], list_files: ['folder', 'List'], run_command: ['terminal', 'Run'], search: ['search', 'Search'], find_files: ['search', 'Find'] };
 function appendTool(container, name, args) {
   const [ic, verb] = TOOL_META[name] || ['zap', name];
-  const target = args.path || args.command || '';
+  const target = args.command || (args.pattern ? `${args.pattern}${args.glob ? `  (${args.glob})` : ''}` : '') || args.glob || args.path || '';
   const blk = h('div', { class: 'tool' });
   const head = h('div', { class: 'tool-head', onclick: () => blk.classList.toggle('open'),
     html: `${icon(ic)}<span class="tool-verb">${esc(verb)}</span><span class="tool-target">${esc(target)}</span><span class="tool-status running"></span>${icon('chev', 'tool-chev')}` });
-  if (args.path) { const tg = $('.tool-target', head); tg.classList.add('link'); tg.onclick = e => { e.stopPropagation(); openFile(absPath(args.path)); }; }
+  if (args.path && !args.pattern && !args.glob) { const tg = $('.tool-target', head); tg.classList.add('link'); tg.onclick = e => { e.stopPropagation(); openFile(absPath(args.path)); }; }
   const body = h('div', { class: 'tool-body' });
   if (name === 'edit_file') {
     const pre = h('pre', { class: 'diff' });
@@ -2043,12 +2063,13 @@ function appendTool(container, name, args) {
   container.append(blk); scrollChat();
   return blk;
 }
-function finishTool(blk, result) {
+function finishTool(blk, result, replay = false) {
   if (!blk) return;
   const err = /^Error/.test(result), st = $('.tool-status', blk);
   st.className = 'tool-status ' + (err ? 'err' : 'ok'); st.textContent = err ? 'failed' : '✓';
   $('.tool-body', blk).append(h('pre', { class: 'tool-result' + (err ? ' err' : '') }, result.slice(0, 6000)));
-  if (err) blk.classList.add('open');
+  if (err && !replay) blk.classList.add('open');
+  if (replay) return;
   const a = blk._args;
   if (!err && ['write_file', 'create_file', 'edit_file'].includes(blk._name) && a.path) {
     const p = absPath(a.path);
@@ -2085,8 +2106,9 @@ async function sendChat(text) {
   if (!text || busy) return;
   if (text.startsWith('/')) return dispatchSlash(text);
   setPanel('chat', true);
-  chatMessages.push({ role: 'user', content: text });
   appendUser(text);
+  const content = await expandMentions(text);
+  chatMessages.push(content === text ? { role: 'user', content } : { role: 'user', content, shown: text });
   setBusy(true);
   const turn = appendTurn();
   abortCtl = new AbortController();
@@ -2104,7 +2126,7 @@ async function sendChat(text) {
   try {
     await getFileIndex().catch(() => {});
     const resp = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: abortCtl.signal,
-      body: JSON.stringify({ messages: chatMessages, model: S.model, cwd: S.cwd, system: getSystemPrompt(), think: thinkOn() }) });
+      body: JSON.stringify({ messages: chatMessages.map(({ shown, ...m }) => m), model: S.model, cwd: S.cwd, system: getSystemPrompt(), think: thinkOn() }) });
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
     for await (const ev of sse(resp)) {
       if (ev.type === 'delta') {
@@ -2125,7 +2147,10 @@ async function sendChat(text) {
         aiText = ev.content || '';
         if (live) endLive(); else turn.body.append(renderMarkdown(aiText || '_(empty response)_'));
       }
-      else if (ev.type === 'tool_call') { endLive(); think = null; turn.thinking(true); lastTool = appendTool(turn.body, ev.name, ev.args || {}); }
+      else if (ev.type === 'tool_call') {
+        endLive(); think = null; turn.thinking(!ev.approval); lastTool = appendTool(turn.body, ev.name, ev.args || {});
+        if (ev.approval) askApproval(lastTool, ev.approval, turn);
+      }
       else if (ev.type === 'tool_result') finishTool(lastTool, ev.result || '');
       else if (ev.type === 'history') history = ev.messages;
       else if (ev.type === 'stats') stats = ev;
@@ -2134,6 +2159,7 @@ async function sendChat(text) {
     }
   } catch (e) {
     endLive();
+    denyPendingApprovals();
     turn.body.append(e.name === 'AbortError' ? h('div', { class: 'chat-note' }, 'Stopped.') : h('div', { class: 'chat-error' }, 'Request failed: ' + e.message));
   }
   endLive();
@@ -2142,7 +2168,8 @@ async function sendChat(text) {
   // Keep the agent's tool calls and results in the conversation so follow-ups know what it already did.
   if (history?.length) chatMessages.push(...history);
   else if (aiText) chatMessages.push({ role: 'assistant', content: aiText });
-  else if (chatMessages.at(-1)?.role === 'user' && chatMessages.at(-1).content === text) chatMessages.pop();
+  else if (chatMessages.at(-1)?.role === 'user' && (chatMessages.at(-1).shown ?? chatMessages.at(-1).content) === text) chatMessages.pop();
+  saveChat();
   const secs = (performance.now() - started) / 1000;
   if (aiText || stats) {
     const tps = stats?.seconds > 0 ? Math.round(stats.tokens / stats.seconds) : 0;
@@ -2161,7 +2188,7 @@ function retryLast() {
   if (busy) return;
   const i = chatMessages.findLastIndex(m => m.role === 'user');
   if (i < 0) return;
-  const q = chatMessages[i].content;
+  const q = chatMessages[i].shown ?? chatMessages[i].content;
   chatMessages = chatMessages.slice(0, i);
   const turns = $$('#messages > .m-user'), lastUser = turns.at(-1);
   if (lastUser) { let n = lastUser; while (n) { const next = n.nextElementSibling; n.remove(); n = next; } }
@@ -2173,6 +2200,106 @@ function setUnrestricted(on) {
                   : 'Unrestricted mode off.');
 }
 function warmModel() { post('/api/warmup', { model: S.model }).catch(() => {}); }
+
+// ── Command approval ──
+const pendingApprovals = new Set();
+function askApproval(blk, id, turn) {
+  pendingApprovals.add(id);
+  blk.classList.add('open');
+  const answer = allow => {
+    pendingApprovals.delete(id);
+    row.replaceChildren(h('span', {}, allow ? 'Allowed' : 'Declined'));
+    setTimeout(() => row.remove(), 800);
+    turn.thinking(true);
+    post('/api/chat/approve', { id, allow }).catch(e => toast(e.message, 'error'));
+  };
+  const row = h('div', { class: 'approve' }, h('span', {}, 'Run this command?'), h('span', { class: 'spacer' }),
+    h('button', { class: 'btn', onclick: () => answer(false) }, 'Decline'),
+    h('button', { class: 'btn allow', onclick: () => answer(true) }, 'Allow'));
+  blk.append(row); scrollChat();
+  toast('ocode wants to run a command', 'warn', 2500);
+}
+function denyPendingApprovals() {
+  for (const id of pendingApprovals) post('/api/chat/approve', { id, allow: false }).catch(() => {});
+  pendingApprovals.clear();
+}
+
+// ── @file mentions: the file's contents are sent along with the message ──
+const MENTION_RE = /(^|\s)@([\w.\/-]+)/g;
+async function expandMentions(text) {
+  const files = new Set(fileIndex.root === S.cwd ? fileIndex.files : []);
+  const found = [...new Set([...text.matchAll(MENTION_RE)].map(m => m[2].replace(/[.,;:!?)]+$/, '')))].filter(f => files.has(f));
+  if (!found.length) return text;
+  const parts = await Promise.all(found.slice(0, 8).map(async f => {
+    try {
+      const d = await api('/api/file?path=' + enc(S.cwd + '/' + f));
+      if (d.binary || d.content == null) return '';
+      const body = d.content.length > 40000 ? d.content.slice(0, 40000) + '\n… (truncated)' : d.content;
+      return `\n\n<file path="${f}">\n${body}\n</file>`;
+    } catch { return ''; }
+  }));
+  return text + parts.join('');
+}
+function mentionQuery() {
+  const i = $('#chat-input'), before = i.value.slice(0, i.selectionStart);
+  const m = before.match(/(?:^|\s)@([\w.\/-]*)$/);
+  return m ? m[1] : null;
+}
+function mentionMatches(q) {
+  if (fileIndex.root !== S.cwd) return [];
+  q = q.toLowerCase();
+  const scored = [];
+  for (const f of fileIndex.files) {
+    const lf = f.toLowerCase(), b = lf.slice(lf.lastIndexOf('/') + 1);
+    const score = !q ? 3 : b.startsWith(q) ? 0 : b.includes(q) ? 1 : lf.includes(q) ? 2 : -1;
+    if (score >= 0) scored.push([score, f.length, f]);
+    if (scored.length > 4000) break;
+  }
+  return scored.sort((a, b) => a[0] - b[0] || a[1] - b[1]).slice(0, 12).map(x => x[2]);
+}
+function pickMention(f) {
+  const i = $('#chat-input'), pos = i.selectionStart, before = i.value.slice(0, pos);
+  const start = before.lastIndexOf('@');
+  i.value = i.value.slice(0, start) + '@' + f + ' ' + i.value.slice(pos);
+  i.selectionStart = i.selectionEnd = start + f.length + 2;
+  $('#slash').classList.remove('open'); autosizeInput(); i.focus();
+}
+
+// ── Saved chats ──
+let chatId = null;
+const chatTitle = () => { const u = chatMessages.find(m => m.role === 'user'); return (u?.shown ?? u?.content ?? '').split('\n')[0].slice(0, 80); };
+function saveChat() {
+  if (!chatMessages.some(m => m.role === 'user')) return;
+  chatId ||= Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  post('/api/chats/' + chatId, { cwd: S.cwd, title: chatTitle(), model: S.model, messages: chatMessages }).catch(() => {});
+}
+async function loadChat(id) {
+  if (busy) return;
+  let c;
+  try { c = await api('/api/chats/' + id); } catch (e) { toast('Could not open that chat: ' + e.message, 'error'); return; }
+  chatId = id; chatMessages = c.messages || [];
+  $('#messages').replaceChildren();
+  let turn = null, pending = [];
+  for (const m of chatMessages) {
+    if (m.role === 'user') { turn = null; appendUser(m.shown ?? m.content); continue; }
+    if (!turn) { turn = appendTurn(); turn.thinking(false); }
+    if (m.role === 'assistant') {
+      if (m.content) turn.body.append(renderMarkdown(m.content));
+      for (const tc of m.tool_calls || []) pending.push(appendTool(turn.body, tc.function?.name || '', tc.function?.arguments || {}));
+    } else if (m.role === 'tool') finishTool(pending.shift(), m.content || '', true);
+  }
+  $$('.tool-status.running').forEach(s => { s.className = 'tool-status'; s.textContent = ''; });
+  appendSystem(`Resumed <b>${esc(c.title || 'chat')}</b>`);
+  setPanel('chat', true); scrollChat();
+}
+async function pickChat(anchor) {
+  let list = [];
+  try { list = await api('/api/chats?cwd=' + enc(S.cwd)); } catch {}
+  if (!list.length) { toast('No saved chats for this folder yet', 'warn'); return; }
+  const v = await askPick('Chats in ' + basename(S.cwd), list.map(c => ({ value: c.id, label: c.title || '(untitled)', icon: icon('chat'),
+    desc: `${timeAgo(c.time)} · ${c.count} message${c.count === 1 ? '' : 's'}`, checked: c.id === chatId })), { anchor: anchor || clickAnchor(), width: 380 });
+  if (v) loadChat(v);
+}
 
 function insertIntoChat(text) {
   setPanel('chat', true);
@@ -2197,6 +2324,7 @@ const SLASH = [
   { name: 'cwd', args: '[path]', desc: 'Change working folder', run: async a => { const p = a.length ? a.join(' ') : await pickFolder(); if (p) { await setCwd(p); appendSystem(`Working folder → <code>${esc(tilde(S.cwd))}</code>`); } } },
   { name: 'unrestricted', args: '[on|off]', desc: 'No refusals or disclaimers', run: a => setUnrestricted(a[0] ? /^(on|1|true|yes)$/i.test(a[0]) : !S.unrestricted) },
   { name: 'retry', args: '', desc: 'Ask the last question again', run: () => retryLast() },
+  { name: 'history', args: '', desc: 'Open a saved chat for this folder', run: () => pickChat($('#ci-model')) },
   { name: 'uncensored', args: '', desc: 'Download or switch to an uncensored model', run: () => pickUncensoredModel($('#ci-model')) },
   { name: 'clear', args: '', desc: 'Clear the conversation', run: () => newChat() },
   { name: 'new', args: '', desc: 'Start a new conversation', run: () => newChat() },
@@ -2212,8 +2340,26 @@ const SLASH = [
 ];
 let slashSel = 0;
 const slashMatches = v => { const q = v.slice(1).split(/\s/)[0].toLowerCase(); return SLASH.filter(c => c.name.startsWith(q)); };
+// The popup above the chat box shows either slash commands or @file matches.
+function popupItems() {
+  const v = $('#chat-input').value, q = mentionQuery();
+  if (q !== null) return mentionMatches(q).map(f => ({ mention: f }));
+  if (!v.startsWith('/') || v.includes('\n') || /^\/\S+\s/.test(v)) return [];
+  return slashMatches(v);
+}
+function pickPopup(it) { if (it?.mention) pickMention(it.mention); else if (it) pickSlash(it); }
 function renderSlash() {
   const v = $('#chat-input').value, box = $('#slash');
+  if (mentionQuery() !== null) {
+    if (fileIndex.root !== S.cwd) getFileIndex().then(() => { if (mentionQuery() !== null) renderSlash(); }).catch(() => {});
+    const m = popupItems();
+    if (!m.length) { box.classList.remove('open'); return; }
+    slashSel = Math.min(slashSel, m.length - 1);
+    box.replaceChildren(...m.map((it, i) => h('div', { class: 'sl-item' + (i === slashSel ? ' sel' : ''), onmousedown: e => { e.preventDefault(); pickMention(it.mention); } },
+      h('span', { html: fileIcon(basename(it.mention)) }), h('span', { class: 'sl-name' }, basename(it.mention)), h('span', { class: 'sl-desc' }, it.mention.includes('/') ? dirname(it.mention) : ''))));
+    box.classList.add('open');
+    return;
+  }
   if (!v.startsWith('/') || v.includes('\n') || /^\/\S+\s/.test(v)) { box.classList.remove('open'); return; }
   const m = slashMatches(v);
   if (!m.length) { box.classList.remove('open'); return; }
@@ -2238,7 +2384,7 @@ function slashHelp() {
   appendSystem(SLASH.map(c => `<code>/${c.name}</code> <span style="color:var(--fg3)">${esc(c.args)}</span> — ${esc(c.desc)}`).join('<br>') +
     `<br><br><b>Shortcuts</b><br>` + keys.join('<br>'));
 }
-function newChat() { if (busy) abortCtl?.abort(); chatMessages = []; renderChatEmpty(); $('#chat-input').focus(); }
+function newChat() { if (busy) abortCtl?.abort(); chatMessages = []; chatId = null; renderChatEmpty(); $('#chat-input').focus(); }
 async function compactChat() {
   if (chatMessages.length < 4) { appendSystem('Nothing to compact yet.'); return; }
   appendSystem('Compacting the conversation…');
@@ -3760,6 +3906,7 @@ const SETTINGS_SCHEMA = [
     { key: 'effort', label: 'Effort', type: 'select', options: sel('low', 'medium', 'high', 'max') },
     { key: 'model', label: 'Chat & edit model', type: 'select', options: () => (MODELS.length ? MODELS : [S.model]).map(m => [m, shortModel(m)]) },
     { key: 'unrestricted', label: 'Unrestricted mode', desc: 'The AI answers everything directly — no refusals, warnings or disclaimers. Off by default.', type: 'bool' },
+    { key: 'confirmCommands', label: 'Ask before running commands', desc: 'The chat agent waits for you to allow each shell command', type: 'bool' },
     { key: 'contextSize', label: 'Context window (tokens)', desc: 'Bigger remembers more of the project but uses more VRAM. 16384 is a good default.', type: 'number', min: 2048, max: 262144 },
     { key: 'aiComplete', label: 'AI autocomplete', desc: 'Ghost-text suggestions while you type — Tab accepts', type: 'bool' },
     { key: 'completeHost', label: 'Autocomplete server', desc: 'Ollama URL — :11435 is the AMD GPU instance', type: 'text' },
@@ -4062,6 +4209,7 @@ function registerBuiltins() {
   C('ai.toggleUnrestricted', 'ocode: Toggle Unrestricted Mode', () => setUnrestricted(!S.unrestricted));
   C('ai.uncensoredModel', 'ocode: Get an Uncensored Model…', () => pickUncensoredModel());
   C('ai.retry', 'ocode: Retry Last Message', retryLast);
+  C('ai.history', 'ocode: Open Saved Chat…', () => pickChat(), 'Ctrl+Shift+H', { global: true });
   C('ai.compact', 'ocode: Compact Conversation', compactChat);
   C('ai.stop', 'ocode: Stop Generating', () => abortCtl?.abort());
   C('ai.effort', 'ocode: Set Effort…', pickEffort);
@@ -4151,11 +4299,12 @@ function wireUI() {
 
   const input = $('#chat-input');
   input.addEventListener('input', () => { autosizeInput(); slashSel = 0; renderSlash(); });
+  input.addEventListener('click', () => renderSlash());
   input.addEventListener('blur', () => setTimeout(() => $('#slash').classList.remove('open'), 120));
   input.addEventListener('keydown', e => {
     const open = $('#slash').classList.contains('open');
-    if (open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); const n = slashMatches(input.value).length; slashSel = (slashSel + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; renderSlash(); return; }
-    if (open && (e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) { e.preventDefault(); pickSlash(slashMatches(input.value)[slashSel]); return; }
+    if (open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); const n = popupItems().length || 1; slashSel = (slashSel + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; renderSlash(); return; }
+    if (open && (e.key === 'Tab' || e.key === 'Enter') && !e.shiftKey) { e.preventDefault(); pickPopup(popupItems()[slashSel]); return; }
     if (open && e.key === 'Escape') { $('#slash').classList.remove('open'); return; }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const v = input.value; input.value = ''; autosizeInput(); sendChat(v); }
     if (e.key === 'Escape' && busy) abortCtl?.abort();
