@@ -7,7 +7,9 @@ ocode pairs a full Monaco editor (the editor inside VS Code) with an AI agent th
 ## Features
 
 - **Editor:** Monaco with syntax highlighting for 80+ languages, minimap, multi-cursor, find and replace, bracket colors, sticky scroll, and auto-save. Open tabs are restored when you relaunch.
-- **AI chat agent:** ask for changes in plain English. The agent uses tools (`read_file`, `write_file`, `edit_file`, `list_files`, `run_command`) and opens the files it changes. It can see your open file and selection.
+- **AI chat agent:** ask for changes in plain English. The agent uses tools (`read_file`, `write_file`, `edit_file`, `list_files`, `run_command`) and opens the files it changes. It can see your open file and selection. Replies stream in as they're written, with tokens per second shown under each answer, plus Copy and Retry buttons. The agent remembers what it did with its tools in earlier turns.
+- **Unrestricted mode:** off by default. Turn it on with the lock button in the chat box, `/unrestricted`, or *Settings → AI*, and the model answers everything directly, without refusals, warnings or disclaimers. The chat box turns red while it's on. Pair it with an uncensored model for best results.
+- **Speed:** the chat model is loaded in the background when ocode starts and kept in memory for 30 minutes, and the context window (*Settings → AI*, 16K tokens by default) is big enough for the project file list and tool results.
 - **AI autocomplete:** suggestions appear in grey as you type; press Tab to accept. Uses fill-in-the-middle with a small coder model and can run on a second GPU.
 - **Inline AI edits (Ctrl+K):** describe a change to the selected code and review it in a side-by-side diff before accepting.
 - **Multi-file edits (Ctrl+I):** describe a change and ocode plans which files to edit, create or delete across the whole project, using search to find every usage. It then writes each file and shows a diff of every change; nothing is saved until you click Apply, and Undo puts it all back. Also available as `/edit` in the chat.
@@ -15,7 +17,7 @@ ocode pairs a full Monaco editor (the editor inside VS Code) with an AI agent th
 - **Integrated terminal:** a real shell (xterm.js on a pseudo-terminal). Press F5 to run the current file in Python, C, C++, Rust, Go, JavaScript, shell and more.
 - **Explorer:** sort by name, type, date or size; git status colors; create, rename, and move to trash; quick open (Ctrl+P); search across files with ripgrep (Ctrl+Shift+F).
 - **Six color themes:** ocode Dark and Light, One Dark, Dracula, Tokyo Night, Catppuccin Mocha. Plugins can add more.
-- **Slash commands in chat:** `/effort`, `/model`, `/theme`, `/compact`, `/run`, `/fix`, `/explain`, `/edit` and more (`/help` lists them).
+- **Slash commands in chat:** `/effort`, `/model`, `/unrestricted`, `/retry`, `/theme`, `/compact`, `/run`, `/fix`, `/explain`, `/edit` and more (`/help` lists them).
 
 ### Git
 

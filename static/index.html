@@ -188,6 +188,17 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 .m-ai-head svg{width:16px;height:16px;color:var(--accent)}
 .m-ai-head span{font-weight:600;color:var(--fg0);font-size:12.5px}
 .m-ai-body{color:var(--fg1);word-break:break-word}
+.m-ai-head .m-actions{margin-left:auto;display:flex;gap:2px;opacity:0;transition:opacity .12s}
+.m-ai:hover .m-actions{opacity:1}
+.m-actions button{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;color:var(--fg3)}
+.m-actions button:hover{background:var(--bg3);color:var(--fg0)}
+.m-actions .ic{width:13px;height:13px}
+.m-stats{font-size:11px;color:var(--fg3);margin-top:4px;font-variant-numeric:tabular-nums}
+.m-think{font-size:12px;color:var(--fg3);border-left:2px solid var(--border);padding:2px 0 2px 10px;margin:4px 0 8px;white-space:pre-wrap;max-height:160px;overflow:auto}
+.m-think:empty{display:none}
+.m-live{white-space:normal}
+.m-live::after{content:'▍';color:var(--accent);animation:blink 1s steps(1) infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
 .chat-error{color:var(--red);background:color-mix(in srgb,var(--red) 10%,transparent);border-radius:var(--r-sm);padding:6px 10px;margin:6px 0;font-size:12.5px}
 .chat-note{color:var(--fg3);font-size:12px;margin:6px 0}
 .dots{display:flex;gap:4px;padding:6px 0}
@@ -262,6 +273,11 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
 #ci-effort{flex-shrink:0}
 #ci-model{flex-shrink:1;min-width:64px;max-width:140px}
 #ci-file{flex-shrink:3;min-width:34px}
+#ci-mode{flex-shrink:0;padding:0 6px}
+#ci-mode.on{color:var(--red);background:color-mix(in srgb,var(--red) 12%,transparent)}
+#ci-mode.on:hover{background:color-mix(in srgb,var(--red) 20%,transparent)}
+#input-box.unrestricted{border-color:color-mix(in srgb,var(--red) 45%,var(--border))}
+#input-box.unrestricted:focus-within{border-color:color-mix(in srgb,var(--red) 70%,var(--border));box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 14%,transparent)}
 .input-hint{font-size:11px;color:var(--fg3);padding:6px 4px 0;display:flex;gap:12px;justify-content:center}
 .input-hint b{font-weight:600;color:var(--fg2)}
 #send-btn{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;flex-shrink:0;transition:opacity .15s,background .15s}
@@ -714,6 +730,7 @@ body.resizing-y *{cursor:row-resize!important;user-select:none!important}
             <button class="chip-btn" id="ci-model" title="Chat model"></button>
             <button class="chip-btn" id="ci-effort" title="Effort — how hard ocode thinks"></button>
             <button class="chip-btn" id="ci-file"></button>
+            <button class="chip-btn" id="ci-mode"></button>
             <span class="spacer"></span>
             <button id="send-btn" title="Send"></button>
           </div>
@@ -780,6 +797,8 @@ const ICONS = {
   plus:'<path d="M12 5v14M5 12h14"/>',
   edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
   zap:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  unlock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.7-1.5"/>',
+  lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   copy:'<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
   insert:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
   check:'<path d="m5 12 5 5 9-10"/>',
@@ -947,7 +966,8 @@ function applySettings(patch, opts = {}) {
   if (term && ('terminalFontSize' in patch || 'fontFamily' in patch)) { term.options.fontSize = S.terminalFontSize; term.options.fontFamily = S.fontFamily; fitTerm(); }
   if ('showHidden' in patch || 'sortOrder' in patch || 'foldersFirst' in patch) refreshTree();
   if ('aiComplete' in patch || 'completeHost' in patch || 'completeModel' in patch) checkCompleteStatus();
-  if ('effort' in patch || 'model' in patch) renderChrome();
+  if ('effort' in patch || 'model' in patch || 'unrestricted' in patch) renderChrome();
+  if ('model' in patch) warmModel();
   if ('shareActiveFile' in patch) renderChatFilePill();
   if ('gitGutter' in patch) updateGutter();
   if ('gitBlame' in patch) updateBlame();
@@ -1989,10 +2009,15 @@ function appendUser(text) {
 }
 function appendTurn() {
   const body = h('div', { class: 'm-ai-body' }), dots = h('div', { class: 'dots', html: '<span></span><span></span><span></span>' });
-  $('#messages').append(h('div', { class: 'm-ai' }, h('div', { class: 'm-ai-head', html: LOGO + '<span>ocode</span>' }), body, dots));
+  const actions = h('div', { class: 'm-actions' });
+  const head = h('div', { class: 'm-ai-head', html: LOGO + '<span>ocode</span>' }); head.append(actions);
+  const wrap = h('div', { class: 'm-ai' }, head, body, dots);
+  $('#messages').append(wrap);
   scrollChat();
-  return { body, thinking: v => { dots.style.display = v ? 'flex' : 'none'; } };
+  return { wrap, body, actions, thinking: v => { dots.style.display = v ? 'flex' : 'none'; } };
 }
+// Chat is "stuck" to the bottom unless the user scrolled up to read something.
+const nearBottom = () => { const m = $('#messages'); return m.scrollHeight - m.scrollTop - m.clientHeight < 80; };
 function appendSystem(html) {
   $('.chat-empty')?.remove();
   $('#messages').append(h('div', { class: 'sys', html: `<span style="color:var(--accent)">◆</span><div>${html}</div>` }));
@@ -2065,28 +2090,88 @@ async function sendChat(text) {
   setBusy(true);
   const turn = appendTurn();
   abortCtl = new AbortController();
-  let aiText = '', lastTool = null;
+  let aiText = '', lastTool = null, live = null, liveText = '', think = null, history = null, stats = null, frame = 0;
+  const started = performance.now();
+  // Streamed text is rendered at most once per animation frame so long answers stay smooth.
+  const paint = () => {
+    frame = 0;
+    if (!live) return;
+    const stick = nearBottom();
+    live.replaceChildren(...renderMarkdown(liveText).childNodes);
+    if (stick) scrollChat();
+  };
+  const endLive = () => { if (frame) cancelAnimationFrame(frame), frame = 0; if (live) { paint(); live.classList.remove('m-live'); } live = null; liveText = ''; };
   try {
     await getFileIndex().catch(() => {});
     const resp = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: abortCtl.signal,
       body: JSON.stringify({ messages: chatMessages, model: S.model, cwd: S.cwd, system: getSystemPrompt(), think: thinkOn() }) });
     if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
     for await (const ev of sse(resp)) {
-      if (ev.type === 'message') { aiText = ev.content || ''; turn.body.append(renderMarkdown(aiText || '_(empty response)_')); }
-      else if (ev.type === 'tool_call') lastTool = appendTool(turn.body, ev.name, ev.args || {});
+      if (ev.type === 'delta') {
+        turn.thinking(false);
+        if (!live) { live = h('div', { class: 'md m-live' }); turn.body.append(live); }
+        liveText += ev.content;
+        if (!frame) frame = requestAnimationFrame(paint);
+        continue;
+      }
+      if (ev.type === 'thinking') {
+        if (!think) { think = h('div', { class: 'm-think' }); turn.body.append(think); }
+        think.textContent += ev.content; think.scrollTop = think.scrollHeight;
+        continue;
+      }
+      if (ev.type === 'retract') { live?.remove(); live = null; liveText = ''; continue; }
+      if (ev.type === 'message') {
+        aiText = ev.content || '';
+        if (live) endLive(); else turn.body.append(renderMarkdown(aiText || '_(empty response)_'));
+      }
+      else if (ev.type === 'tool_call') { endLive(); think = null; turn.thinking(true); lastTool = appendTool(turn.body, ev.name, ev.args || {}); }
       else if (ev.type === 'tool_result') finishTool(lastTool, ev.result || '');
-      else if (ev.type === 'error') turn.body.append(h('div', { class: 'chat-error' }, ev.content));
-      scrollChat();
+      else if (ev.type === 'history') history = ev.messages;
+      else if (ev.type === 'stats') stats = ev;
+      else if (ev.type === 'error') { endLive(); turn.body.append(h('div', { class: 'chat-error' }, ev.content)); }
+      if (nearBottom()) scrollChat();
     }
   } catch (e) {
+    endLive();
     turn.body.append(e.name === 'AbortError' ? h('div', { class: 'chat-note' }, 'Stopped.') : h('div', { class: 'chat-error' }, 'Request failed: ' + e.message));
   }
+  endLive();
   turn.thinking(false);
   $$('.tool-status.running', turn.body).forEach(s => { s.className = 'tool-status err'; s.textContent = 'stopped'; });
-  if (aiText) chatMessages.push({ role: 'assistant', content: aiText });
-  abortCtl = null; setBusy(false); scrollChat();
+  // Keep the agent's tool calls and results in the conversation so follow-ups know what it already did.
+  if (history?.length) chatMessages.push(...history);
+  else if (aiText) chatMessages.push({ role: 'assistant', content: aiText });
+  else if (chatMessages.at(-1)?.role === 'user' && chatMessages.at(-1).content === text) chatMessages.pop();
+  const secs = (performance.now() - started) / 1000;
+  if (aiText || stats) {
+    const tps = stats?.seconds > 0 ? Math.round(stats.tokens / stats.seconds) : 0;
+    turn.wrap.append(h('div', { class: 'm-stats' }, [tps && `${tps} tok/s`, stats?.tokens && `${stats.tokens} tokens`, `${secs.toFixed(1)}s`].filter(Boolean).join(' · ')));
+  }
+  if (aiText) {
+    turn.actions.append(
+      h('button', { title: 'Copy response', html: icon('copy'), onclick: () => copyText(aiText) }),
+      h('button', { title: 'Retry', html: icon('refresh'), onclick: () => retryLast() }));
+  }
+  abortCtl = null; setBusy(false); if (nearBottom()) scrollChat();
   emit('chatResponse', aiText);
 }
+// Drop the last exchange and ask the same question again.
+function retryLast() {
+  if (busy) return;
+  const i = chatMessages.findLastIndex(m => m.role === 'user');
+  if (i < 0) return;
+  const q = chatMessages[i].content;
+  chatMessages = chatMessages.slice(0, i);
+  const turns = $$('#messages > .m-user'), lastUser = turns.at(-1);
+  if (lastUser) { let n = lastUser; while (n) { const next = n.nextElementSibling; n.remove(); n = next; } }
+  sendChat(q);
+}
+function setUnrestricted(on) {
+  setSettings({ unrestricted: !!on });
+  appendSystem(on ? '<b style="color:var(--red)">Unrestricted mode on.</b> ocode will answer everything directly, without refusals or disclaimers. Turn it off with <code>/unrestricted off</code>.'
+                  : 'Unrestricted mode off.');
+}
+function warmModel() { post('/api/warmup', { model: S.model }).catch(() => {}); }
 
 function insertIntoChat(text) {
   setPanel('chat', true);
@@ -2109,6 +2194,8 @@ const SLASH = [
   { name: 'model', args: '[name]', desc: 'Switch model', run: a => a.length ? setModelByName(a.join(' ')) : runCommand('ai.model', $('#ci-model')) },
   { name: 'theme', args: '[name]', desc: 'Change color theme', run: a => { if (!a.length) return pickTheme(); const id = Object.keys(THEMES).find(k => k.includes(a.join('-').toLowerCase()) || THEMES[k].label.toLowerCase().includes(a.join(' ').toLowerCase())); id ? setSettings({ theme: id }) : appendSystem(`No theme matching "${esc(a.join(' '))}"`); } },
   { name: 'cwd', args: '[path]', desc: 'Change working folder', run: async a => { const p = a.length ? a.join(' ') : await pickFolder(); if (p) { await setCwd(p); appendSystem(`Working folder → <code>${esc(tilde(S.cwd))}</code>`); } } },
+  { name: 'unrestricted', args: '[on|off]', desc: 'No refusals or disclaimers', run: a => setUnrestricted(a[0] ? /^(on|1|true|yes)$/i.test(a[0]) : !S.unrestricted) },
+  { name: 'retry', args: '', desc: 'Ask the last question again', run: () => retryLast() },
   { name: 'clear', args: '', desc: 'Clear the conversation', run: () => newChat() },
   { name: 'new', args: '', desc: 'Start a new conversation', run: () => newChat() },
   { name: 'compact', args: '', desc: 'Summarise history to save context', run: () => compactChat() },
@@ -2156,9 +2243,10 @@ async function compactChat() {
   setBusy(true);
   let summary = '';
   try {
-    const resp = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: S.model, cwd: S.cwd,
-      system: 'Summarise conversations precisely and briefly.', messages: [...chatMessages, { role: 'user', content: 'Summarise this conversation in 3-6 bullet points: what was built or changed, which files, and open questions. Do not use any tools.' }] }) });
-    for await (const ev of sse(resp)) if (ev.type === 'message') summary = ev.content;
+    // A plain completion (no tools) is much faster than a full agent turn.
+    const msgs = chatMessages.filter(m => m.role !== 'tool').map(m => ({ role: m.role, content: m.content || (m.tool_calls ? `(used tools: ${m.tool_calls.map(t => t.function?.name).join(', ')})` : '') }));
+    summary = (await streamText('/api/ai', { model: S.model, temperature: 0.2, maxTokens: 800, system: 'Summarise conversations precisely and briefly.',
+      messages: [...msgs, { role: 'user', content: 'Summarise this conversation in 3-6 bullet points: what was built or changed, which files, and open questions.' }] })).trim();
   } catch (e) { appendSystem('Compact failed: ' + esc(e.message)); }
   setBusy(false);
   if (!summary) return;
@@ -3512,6 +3600,11 @@ function renderChrome() {
   $('#ci-model').innerHTML = `${icon('sparkle')}<span>${esc(shortModel(S.model))}</span>${icon('chev', 'caret')}`;
   $('#ci-model').title = `Chat model: ${S.model}`;
   $('#ci-effort').innerHTML = `${effortIcon(S.effort)}<span>${esc(EFFORT_INFO[S.effort]?.[0] || S.effort)}</span>${icon('chev', 'caret')}`;
+  const un = !!S.unrestricted;
+  $('#ci-mode').classList.toggle('on', un);
+  $('#ci-mode').innerHTML = un ? `${icon('unlock')}<span>Unrestricted</span>` : icon('lock');
+  $('#ci-mode').title = un ? 'Unrestricted mode is on — click to turn it off' : 'Unrestricted mode is off — click to turn it on (no refusals or disclaimers)';
+  $('#input-box').classList.toggle('unrestricted', un);
   renderStatus(); renderChatFilePill();
 }
 function renderChatFilePill() {
@@ -3627,6 +3720,8 @@ const SETTINGS_SCHEMA = [
   ['AI', [
     { key: 'effort', label: 'Effort', type: 'select', options: sel('low', 'medium', 'high', 'max') },
     { key: 'model', label: 'Chat & edit model', type: 'select', options: () => (MODELS.length ? MODELS : [S.model]).map(m => [m, shortModel(m)]) },
+    { key: 'unrestricted', label: 'Unrestricted mode', desc: 'The AI answers everything directly — no refusals, warnings or disclaimers. Off by default.', type: 'bool' },
+    { key: 'contextSize', label: 'Context window (tokens)', desc: 'Bigger remembers more of the project but uses more VRAM. 16384 is a good default.', type: 'number', min: 2048, max: 262144 },
     { key: 'aiComplete', label: 'AI autocomplete', desc: 'Ghost-text suggestions while you type — Tab accepts', type: 'bool' },
     { key: 'completeHost', label: 'Autocomplete server', desc: 'Ollama URL — :11435 is the AMD GPU instance', type: 'text' },
     { key: 'completeModel', label: 'Autocomplete model', desc: 'A small base coder model is fastest', type: 'text' },
@@ -3925,6 +4020,8 @@ function registerBuiltins() {
   C('explorer.sort', 'Explorer: Sort Files By…', () => sortMenu());
   C('view.closeSide', 'View: Close Side Panel', closeSidePanel);
   C('ai.newChat', 'ocode: New Chat', newChat);
+  C('ai.toggleUnrestricted', 'ocode: Toggle Unrestricted Mode', () => setUnrestricted(!S.unrestricted));
+  C('ai.retry', 'ocode: Retry Last Message', retryLast);
   C('ai.compact', 'ocode: Compact Conversation', compactChat);
   C('ai.stop', 'ocode: Stop Generating', () => abortCtl?.abort());
   C('ai.effort', 'ocode: Set Effort…', pickEffort);
@@ -4027,6 +4124,7 @@ function wireUI() {
   $('#ci-model').onclick = e => runCommand('ai.model', e.currentTarget);
   $('#ci-effort').onclick = e => runCommand('ai.effort', e.currentTarget);
   $('#ci-file').onclick = () => setSettings({ shareActiveFile: S.shareActiveFile === false });
+  $('#ci-mode').onclick = () => setUnrestricted(!S.unrestricted);
   $('#messages').addEventListener('click', e => {
     const a = e.target.closest('a');
     if (a) { e.preventDefault(); const href = a.getAttribute('href') || ''; if (/^https?:\/\//.test(href)) post('/api/open-external', { url: href }).catch(err => toast(err.message, 'error')); else if (href && !href.startsWith('#')) openFile(absPath(href.replace(/^file:\/\//, ''))); return; }
@@ -4071,6 +4169,7 @@ async function boot() {
   for (const p of restore) await openFile(p, { silent: true, noFocus: true });
   activate(restoreActive && tabs.has(restoreActive) ? restoreActive : [...tabs.keys()].pop() || null, { noFocus: true });
   loadModels().then(renderChrome);
+  warmModel();
   renderChrome();
   emit('ready');
   (editor.getModel() ? editor : $('#chat-input')).focus();
